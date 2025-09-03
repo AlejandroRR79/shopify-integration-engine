@@ -1,11 +1,12 @@
 package com.creditienda.service;
 
+import java.util.Map;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
 
-import java.util.Map;
+import reactor.core.publisher.Mono;
 
 @Service
 public class OAuthTokenService {
@@ -24,11 +25,11 @@ public class OAuthTokenService {
     @SuppressWarnings("unchecked")
     public String obtenerToken() {
         Mono<Map> response = webClient.post()
-            .uri(tokenUrl)
-            .header("Content-Type", "application/x-www-form-urlencoded")
-            .bodyValue("grant_type=client_credentials&client_id=" + clientId + "&client_secret=" + clientSecret)
-            .retrieve()
-            .bodyToMono(Map.class);
+                .uri(tokenUrl)
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .bodyValue("grant_type=client_credentials&client_id=" + clientId + "&client_secret=" + clientSecret)
+                .retrieve()
+                .bodyToMono(Map.class);
 
         Map<String, Object> tokenMap = response.block();
         return tokenMap != null ? tokenMap.get("access_token").toString() : null;
