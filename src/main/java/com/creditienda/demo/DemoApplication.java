@@ -19,6 +19,8 @@ public class DemoApplication {
 		// Activar perfil dev si no se especifica otro
 		if (System.getProperty("spring.profiles.active") == null &&
 				System.getenv("SPRING_PROFILES_ACTIVE") == null) {
+
+					
 			app.setAdditionalProfiles("dev");
 		}
 
