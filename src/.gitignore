@@ -1,0 +1,45 @@
+# Maven
+/target/
+!.mvn/wrapper/maven-wrapper.jar
+.mvn/wrapper/maven-wrapper.properties
+
+# IDEs
+.idea/
+*.iml
+*.classpath
+*.project
+*.settings/
+
+# Logs
+*.log
+logs/
+*.out
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+*.local
+
+# Java
+*.class
+
+# VSCode
+.vscode/
+
+# Build
+/shopify-integration-engine.jar
+
+.env
+
+# Configuración local
+# Ignorar todos los archivos .properties
+*.properties
+
+# Pero permitir el de desarrollo si lo necesitas en el repo
+!src/main/resources/application-dev.properties
+
+# Ignorar el de producción siempre
+application-prod.properties
