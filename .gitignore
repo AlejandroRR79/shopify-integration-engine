@@ -34,3 +34,16 @@ build/
 
 
 src/main/resources/application.properties
+
+
+# Configuración local
+# Ignorar todos los archivos .properties
+*.properties
+
+# Pero permitir el de desarrollo si lo necesitas en el repo
+!src/main/resources/application-dev.properties
+!src/main/resources/log4j2.properties
+
+
+# Ignorar el de producción siempre
+application-prod.properties
