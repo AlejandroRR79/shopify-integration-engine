@@ -42,4 +42,4 @@ Thumbs.db
 !src/main/resources/application-dev.properties
 
 # Ignorar el de producción siempre
-config/application-prod.properties
+application-prod.properties

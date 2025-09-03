@@ -14,18 +14,10 @@ public class DemoApplication {
 	@Value("${config.source:DEFAULT}")
 	private String configSource;
 
-	public static void main(String[] args) {
-		SpringApplication app = new SpringApplication(DemoApplication.class);
-		// Activar perfil dev si no se especifica otro
-		if (System.getProperty("spring.profiles.active") == null &&
-				System.getenv("SPRING_PROFILES_ACTIVE") == null) {
+public static void main(String[] args) {
+    SpringApplication.run(DemoApplication.class, args);
+}
 
-					
-			app.setAdditionalProfiles("dev");
-		}
-
-		app.run(args);
-	}
 
 	@PostConstruct
 	public void logConfigSource() {
