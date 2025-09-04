@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import jakarta.annotation.PostConstruct;
 import reactor.core.publisher.Mono;
 
 @Service
@@ -21,6 +22,13 @@ public class OAuthTokenService {
     private String clientSecret;
 
     private final WebClient webClient = WebClient.builder().build();
+
+    @PostConstruct
+    public void validarVariables() {
+        System.out.println("🔍 tokenUrl: " + tokenUrl);
+        System.out.println("🔍 clientId: " + clientId);
+        System.out.println("🔍 clientSecret: " + clientSecret);
+    }
 
     @SuppressWarnings("unchecked")
     public String obtenerToken() {
