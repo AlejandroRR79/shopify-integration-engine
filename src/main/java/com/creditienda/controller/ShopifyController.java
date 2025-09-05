@@ -51,27 +51,24 @@ public class ShopifyController {
         return productos;
     }
 
-    @GetMapping("/shopify/orden/{orderId}")
-    public Map<String, Object> consultarYActualizarOrden(@PathVariable String orderId) {
+    @GetMapping("/api/shopify/secure/orden/{orderId}")
+    public ResponseEntity<Map<String, Object>> consultarYActualizarOrden(@PathVariable String orderId) {
         logger.info("Consultando orden en Shopify con ID: {}", orderId);
 
-        // 1. Recuperar la orden
         Map<String, Object> respuestaOriginal = shopifyService.consultarOrdenPorId(orderId);
         Object rawOrder = respuestaOriginal.get("order");
         if (!(rawOrder instanceof Map)) {
             logger.warn("La respuesta no contiene una orden válida");
-            return Map.of("error", "Orden no encontrada o formato inválido");
+            return ResponseEntity.ok(Map.of("error", "Orden no encontrada o formato inválido"));
         }
 
         @SuppressWarnings("unchecked")
         Map<String, Object> orden = (Map<String, Object>) rawOrder;
         logger.info("Orden recibida: {}", orden);
 
-        // 2. Modificar localmente los campos
         orden.put("note", "Actualizada automáticamente desde sistema");
         orden.put("tags", "procesada, validada");
 
-        // 3. Enviar actualización a Shopify
         Map<String, Object> payloadActualizacion = Map.of("order", orden);
         String urlActualizacion = String.format("https://%s/admin/api/%s/orders/%s.json",
                 shopifyService.getShopDomain(), shopifyService.getApiVersion(), orderId);
@@ -88,7 +85,6 @@ public class ShopifyController {
 
         logger.info("Orden actualizada en Shopify: {}", respuestaActualizada);
 
-        // 4. Verificar si ya existe un fulfillment
         String urlFulfillments = String.format("https://%s/admin/api/%s/orders/%s/fulfillments.json",
                 shopifyService.getShopDomain(), shopifyService.getApiVersion(), orderId);
 
@@ -101,16 +97,14 @@ public class ShopifyController {
                 .block();
 
         @SuppressWarnings("unchecked")
-        List<Map<String, Object>> fulfillments = (List<Map<String, Object>>) respuestaFulfillments
-                .get("fulfillments");
+        List<Map<String, Object>> fulfillments = (List<Map<String, Object>>) respuestaFulfillments.get("fulfillments");
         if (fulfillments != null && !fulfillments.isEmpty()) {
             logger.warn("Ya existe un fulfillment para la orden {}", orderId);
-            return Map.of(
+            return ResponseEntity.ok(Map.of(
                     "orden_actualizada", respuestaActualizada,
-                    "fulfillment_error", "Ya existe un fulfillment para esta orden.");
+                    "fulfillment_error", "Ya existe un fulfillment para esta orden."));
         }
 
-        // 5. Obtener fulfillment_order_id y validar estado
         String urlFulfillmentOrders = String.format("https://%s/admin/api/%s/orders/%s/fulfillment_orders.json",
                 shopifyService.getShopDomain(), shopifyService.getApiVersion(), orderId);
 
@@ -127,35 +121,31 @@ public class ShopifyController {
                 .get("fulfillment_orders");
         if (fulfillmentOrders == null || fulfillmentOrders.isEmpty()) {
             logger.warn("No se encontró fulfillment_order para la orden {}", orderId);
-            return Map.of(
+            return ResponseEntity.ok(Map.of(
                     "orden_actualizada", respuestaActualizada,
-                    "fulfillment_error", "No se encontró fulfillment_order para esta orden.");
+                    "fulfillment_error", "No se encontró fulfillment_order para esta orden."));
         }
 
         Map<String, Object> fulfillmentOrder = fulfillmentOrders.get(0);
         String status = (String) fulfillmentOrder.get("status");
         if (!"open".equalsIgnoreCase(status)) {
             logger.warn("Fulfillment order no está en estado 'open': {}", status);
-            return Map.of(
+            return ResponseEntity.ok(Map.of(
                     "orden_actualizada", respuestaActualizada,
-                    "fulfillment_error",
-                    "El fulfillment_order no está en estado válido para ser cumplido.");
+                    "fulfillment_error", "El fulfillment_order no está en estado válido para ser cumplido."));
         }
 
-        // 6. Validar si ya tiene tracking asignado
         if (fulfillmentOrder.containsKey("tracking_info")) {
             @SuppressWarnings("unchecked")
             Map<String, Object> trackingInfo = (Map<String, Object>) fulfillmentOrder.get("tracking_info");
             if (trackingInfo != null && trackingInfo.get("number") != null) {
-                logger.warn("La orden ya tiene número de guía asignado: {}",
-                        trackingInfo.get("number"));
-                return Map.of(
+                logger.warn("La orden ya tiene número de guía asignado: {}", trackingInfo.get("number"));
+                return ResponseEntity.ok(Map.of(
                         "orden_actualizada", respuestaActualizada,
-                        "fulfillment_error", "La orden ya tiene guía de embarque asignada.");
+                        "fulfillment_error", "La orden ya tiene guía de embarque asignada."));
             }
         }
 
-        // 7. Crear fulfillment con guía de embarque
         String fulfillmentOrderId = fulfillmentOrder.get("id").toString();
         String trackingNumber = "NPX5T2YPLN";
         String trackingCompany = "FedEx";
@@ -186,10 +176,9 @@ public class ShopifyController {
 
         logger.info("Fulfillment creado con logística: {}", respuestaFulfillment);
 
-        // 8. Retornar todo junto
-        return Map.of(
+        return ResponseEntity.ok(Map.of(
                 "orden_actualizada", respuestaActualizada,
-                "fulfillment_creado", respuestaFulfillment);
+                "fulfillment_creado", respuestaFulfillment));
     }
 
     @PostMapping("/shopify/webhook")
@@ -216,7 +205,7 @@ public class ShopifyController {
             logger.info("📦 Cuerpo crudo en bytes:\n{}", new String(rawBodyBytes, StandardCharsets.UTF_8));
             // Recuperar la firma HMAC enviada por Shopify
             String hmacHeader = request.getHeader("X-Shopify-Hmac-Sha256");
-        
+
             // Calcular HMAC localmente
             Mac mac = Mac.getInstance("HmacSHA256");
             SecretKeySpec keySpec = new SecretKeySpec(shopifySecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
@@ -273,6 +262,5 @@ public class ShopifyController {
             return false;
         }
     }
-
 
 }
