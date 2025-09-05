@@ -47,6 +47,3 @@ logs/creditienda.log
 
 # Ignorar el de producción siempre
 application-prod.properties
-
-logs/creditienda.log
-src/main/resources/application-dev.properties
