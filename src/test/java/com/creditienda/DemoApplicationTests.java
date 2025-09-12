@@ -1,4 +1,4 @@
-package com.creditienda.demo;
+package com.creditienda;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
