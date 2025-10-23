@@ -78,6 +78,7 @@ public class ShopifyProductService {
         product.put("images", buildImages(dto.getImages()));
         product.put("status", dto.getStatus());
         product.put("product_type", dto.getProductType());
+        product.put("product_Category", dto.getProductType());
 
         // ✅ Aquí insertas el bloque para la categoría estándar
         Map<String, String> taxonomy = dto.getStandardizedProductType();

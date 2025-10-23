@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:context="http://www.springframework.org/schema/context"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+                        http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd">
+
+    <!-- Escaneo de componentes -->
+    <context:component-scan base-package="com.creditienda" />
+
+    <!-- Job único -->
+    <bean id="jobDetail1" class="org.springframework.scheduling.quartz.JobDetailFactoryBean">
+        <property name="jobClass" value="com.creditienda.service.EstafetaJob" />
+        <property name="durability" value="true" />
+    </bean>
+
+    <bean id="trigger1" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <property name="jobDetail" ref="jobDetail1" />
+        <property name="cronExpression" value="0/30 * * * * ?" />
+    </bean>
+
+    <!-- JobFactory que permite inyección de dependencias -->
+    <bean id="jobFactory" class="com.creditienda.config.AutowiringSpringBeanJobFactory" />
+
+    <!-- Scheduler con JobFactory -->
+    <bean class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
+        <property name="jobFactory" ref="jobFactory" />
+        <property name="triggers">
+            <list>
+                <ref bean="trigger1" />
+            </list>
+        </property>
+    </bean>
+</beans>
