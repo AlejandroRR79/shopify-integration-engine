@@ -8,15 +8,27 @@
     <!-- Escaneo de componentes -->
     <context:component-scan base-package="com.creditienda" />
 
-    <!-- Job único -->
-    <bean id="jobDetail1" class="org.springframework.scheduling.quartz.JobDetailFactoryBean">
-        <property name="jobClass" value="com.creditienda.service.EstafetaJob" />
+    <!-- Job Estafeta -->
+    <bean id="jobEstafeta" class="org.springframework.scheduling.quartz.JobDetailFactoryBean">
+        <property name="jobClass" value="com.creditienda.job.EstafetaJob" />
         <property name="durability" value="true" />
     </bean>
 
-    <bean id="trigger1" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
-        <property name="jobDetail" ref="jobDetail1" />
-        <property name="cronExpression" value="0/30 * * * * ?" />
+    <bean id="triggerEstafeta" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <property name="jobDetail" ref="jobEstafeta" />
+        <property name="cronExpression" value="0 0 * * * ?" />
+    </bean>
+
+
+    <!-- Job Timbrado -->
+    <bean id="jobDetailTimbrado" class="org.springframework.scheduling.quartz.JobDetailFactoryBean">
+        <property name="jobClass" value="com.creditienda.job.TimbradoJob" />
+        <property name="durability" value="true" />
+    </bean>
+
+    <bean id="triggerTimbrado" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <property name="jobDetail" ref="jobDetailTimbrado" />
+        <property name="cronExpression" value="0 0/1 * * * ?" />
     </bean>
 
     <!-- JobFactory que permite inyección de dependencias -->
@@ -27,8 +39,10 @@
         <property name="jobFactory" ref="jobFactory" />
         <property name="triggers">
             <list>
-                <ref bean="trigger1" />
+                <ref bean="triggerTimbrado" />
+                <ref bean="triggerEstafeta" />
             </list>
         </property>
     </bean>
+
 </beans>

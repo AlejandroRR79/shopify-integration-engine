@@ -1,0 +1,34 @@
+package com.creditienda.service.notificacion;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
+import com.creditienda.util.EmailUtil;
+
+@Service
+public class NotificacionService {
+
+    private final EmailUtil emailUtil;
+
+    @Value("${app.mail.notificacion.operacion}")
+    private String correoNotificacion;
+
+    @Value("${app.mail.error.operacion}")
+    private String correoErrores;
+
+    public NotificacionService(EmailUtil emailUtil) {
+        this.emailUtil = emailUtil;
+    }
+
+    public void enviarConfirmacion(String mensaje) {
+        emailUtil.enviar(correoNotificacion, "✅ Confirmación de operación", mensaje);
+    }
+
+    public void enviarError(String mensaje) {
+        emailUtil.enviar(correoErrores, "❌ Error detectado", mensaje);
+    }
+
+    public void enviarFacturacion(String mensaje) {
+        emailUtil.enviar(correoNotificacion, "📄 Flujo de facturación B2B", mensaje);
+    }
+}

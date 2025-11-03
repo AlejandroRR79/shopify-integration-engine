@@ -2,7 +2,11 @@ package com.creditienda.model;
 
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class EstafetaResponse {
+
     private Result result;
     private List<ItemHistory> itemHistories;
 
@@ -22,7 +26,38 @@ public class EstafetaResponse {
         this.itemHistories = itemHistories;
     }
 
-    // Subclase: Result
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class ItemHistory {
+        private ErrorInfo error;
+        private Information information;
+        private List<History> histories;
+
+        public ErrorInfo getError() {
+            return error;
+        }
+
+        public void setError(ErrorInfo error) {
+            this.error = error;
+        }
+
+        public Information getInformation() {
+            return information;
+        }
+
+        public void setInformation(Information information) {
+            this.information = information;
+        }
+
+        public List<History> getHistories() {
+            return histories;
+        }
+
+        public void setHistories(List<History> histories) {
+            this.histories = histories;
+        }
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Result {
         private boolean success;
         private int code;
@@ -53,65 +88,10 @@ public class EstafetaResponse {
         }
     }
 
-    // Subclase: ItemHistory
-    public static class ItemHistory {
-        private Information information;
-        private List<History> histories;
-
-        public Information getInformation() {
-            return information;
-        }
-
-        public void setInformation(Information information) {
-            this.information = information;
-        }
-
-        public List<History> getHistories() {
-            return histories;
-        }
-
-        public void setHistories(List<History> histories) {
-            this.histories = histories;
-        }
-    }
-
-    // Subclase: Information
-    public static class Information {
-        private String originalWaybill;
-        private String waybillCode;
-        private String trackingCode;
-
-        public String getOriginalWaybill() {
-            return originalWaybill;
-        }
-
-        public void setOriginalWaybill(String originalWaybill) {
-            this.originalWaybill = originalWaybill;
-        }
-
-        public String getWaybillCode() {
-            return waybillCode;
-        }
-
-        public void setWaybillCode(String waybillCode) {
-            this.waybillCode = waybillCode;
-        }
-
-        public String getTrackingCode() {
-            return trackingCode;
-        }
-
-        public void setTrackingCode(String trackingCode) {
-            this.trackingCode = trackingCode;
-        }
-    }
-
-    // Subclase: History
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class History {
         private String spanishDescription;
-        private String reasonCode;
         private String eventDateTime;
-        private String warehouseCode;
         private String warehouseName;
 
         public String getSpanishDescription() {
@@ -122,28 +102,12 @@ public class EstafetaResponse {
             this.spanishDescription = spanishDescription;
         }
 
-        public String getReasonCode() {
-            return reasonCode;
-        }
-
-        public void setReasonCode(String reasonCode) {
-            this.reasonCode = reasonCode;
-        }
-
         public String getEventDateTime() {
             return eventDateTime;
         }
 
         public void setEventDateTime(String eventDateTime) {
             this.eventDateTime = eventDateTime;
-        }
-
-        public String getWarehouseCode() {
-            return warehouseCode;
-        }
-
-        public void setWarehouseCode(String warehouseCode) {
-            this.warehouseCode = warehouseCode;
         }
 
         public String getWarehouseName() {

@@ -1,5 +1,8 @@
 package com.creditienda.controller.estafeta;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -24,6 +27,9 @@ public class GuiaEstafetaController {
     @Value("${estafeta.guia.make.apikey}")
     private String expectedApiKey;
 
+    @Value("${estafeta.guia.effective-date.offset-days}")
+    private int effectiveDateOffsetDays;
+
     public GuiaEstafetaController(EstafetaGuiaClient estafetaGuiaClient) {
         this.estafetaGuiaClient = estafetaGuiaClient;
     }
@@ -44,8 +50,20 @@ public class GuiaEstafetaController {
 
         try {
             logger.info("Solicitud recibida para generar guía");
+
+            // Calcula la fecha actual + 15 días en formato yyyyMMdd
+            String effectiveDate = LocalDate.now()
+                    .plusDays(effectiveDateOffsetDays)
+                    .format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+
+            jsonBody = jsonBody.replaceAll("\"effectiveDate\"\\s*:\\s*\"[^\"]*\"",
+                    "\"effectiveDate\":\"" + effectiveDate + "\"");
+
+            logger.info("-------------->>>>effectiveDate {}", effectiveDate);
+
             String respuesta = estafetaGuiaClient.generarGuia(jsonBody);
-            logger.info("Respuesta de Estafeta: {}", respuesta);
+
+            logger.info("Respuesta de Estafeta recibida correctamente");
             return ResponseEntity.ok(respuesta);
         } catch (Exception e) {
             logger.error("Error al generar guía: {}", e.getMessage(), e);

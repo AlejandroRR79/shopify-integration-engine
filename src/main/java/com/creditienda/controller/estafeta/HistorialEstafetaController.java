@@ -31,8 +31,8 @@ public class HistorialEstafetaController {
     @PostMapping
     public ResponseEntity<String> consultarHistorial(
             @RequestHeader(value = "x-make-apikey", required = false) String apiKey,
-            @RequestBody(required = false) String jsonBody // no se usa, pero permite compatibilidad con Make
-    ) {
+            @RequestBody(required = false) String jsonBody) {
+
         if (apiKey == null || apiKey.isBlank()) {
             logger.warn("Header x-make-apikey no proporcionado");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Error: Header x-make-apikey requerido");
@@ -45,7 +45,12 @@ public class HistorialEstafetaController {
 
         try {
             logger.info("Solicitud recibida para consultar historial de guía");
-            String respuesta = estafetHistorialClient.consultarHistorial();
+
+            if (jsonBody == null || jsonBody.isBlank()) {
+                return ResponseEntity.badRequest().body("Error: JSON del cuerpo requerido");
+            }
+
+            String respuesta = estafetHistorialClient.consultarHistorial(jsonBody);
             logger.info("Respuesta de Estafeta: {}", respuesta);
             return ResponseEntity.ok(respuesta);
         } catch (Exception e) {
