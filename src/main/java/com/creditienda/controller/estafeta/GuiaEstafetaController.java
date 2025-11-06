@@ -78,6 +78,7 @@ public class GuiaEstafetaController {
             jsonBody = jsonBody.replaceAll("\"effectiveDate\"\\s*:\\s*\"[^\"]*\"",
                     "\"effectiveDate\":\"" + effectiveDate + "\"");
 
+            logger.info("Json recibido y actualizada la fecha: {}", jsonBody);
             logger.info("Fecha efectiva aplicada: {}", effectiveDate);
 
             String respuesta = estafetaGuiaClient.generarGuia(jsonBody);
