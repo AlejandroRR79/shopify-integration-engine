@@ -16,7 +16,7 @@
 
     <bean id="triggerEstafeta" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
         <property name="jobDetail" ref="jobEstafeta" />
-        <property name="cronExpression" value="0 0 * * * ?" />
+        <property name="cronExpression" value="0 0 0/12 * * ?" />
     </bean>
 
 
@@ -28,7 +28,7 @@
 
     <bean id="triggerTimbrado" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
         <property name="jobDetail" ref="jobDetailTimbrado" />
-        <property name="cronExpression" value="0 0/1 * * * ?" />
+        <property name="cronExpression" value="0 0 0/12 * * ?" />
     </bean>
 
     <!-- JobFactory que permite inyección de dependencias -->

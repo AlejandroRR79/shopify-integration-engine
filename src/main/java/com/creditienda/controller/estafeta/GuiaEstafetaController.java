@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -34,10 +35,12 @@ public class GuiaEstafetaController {
         this.estafetaGuiaClient = estafetaGuiaClient;
     }
 
+    // 🔓 Endpoint abierto con API Key
     @PostMapping
     public ResponseEntity<String> generarGuia(
             @RequestHeader(value = "x-make-apikey", required = false) String apiKey,
             @RequestBody String jsonBody) {
+
         if (apiKey == null || apiKey.isBlank()) {
             logger.warn("Header x-make-apikey no proporcionado");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Error: Header x-make-apikey requerido");
@@ -48,10 +51,26 @@ public class GuiaEstafetaController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Error: API Key no autorizada");
         }
 
-        try {
-            logger.info("Solicitud recibida para generar guía");
+        return procesarGuia(jsonBody, "APIKey");
+    }
 
-            // Calcula la fecha actual + 15 días en formato yyyyMMdd
+    // 🔐 Endpoint protegido con JWT
+    @PostMapping("/secure")
+    public ResponseEntity<String> generarGuiaProtegida(
+            @RequestBody String jsonBody,
+            Authentication authentication) {
+
+        String usuario = authentication.getName(); // extraído del token
+        logger.info("Petición autenticada por JWT: {}", usuario);
+
+        return procesarGuia(jsonBody, usuario);
+    }
+
+    // 🔁 Lógica compartida
+    private ResponseEntity<String> procesarGuia(String jsonBody, String origenPeticion) {
+        try {
+            logger.info("Solicitud recibida para generar guía ({})", origenPeticion);
+
             String effectiveDate = LocalDate.now()
                     .plusDays(effectiveDateOffsetDays)
                     .format(DateTimeFormatter.ofPattern("yyyyMMdd"));
@@ -59,7 +78,7 @@ public class GuiaEstafetaController {
             jsonBody = jsonBody.replaceAll("\"effectiveDate\"\\s*:\\s*\"[^\"]*\"",
                     "\"effectiveDate\":\"" + effectiveDate + "\"");
 
-            logger.info("-------------->>>>effectiveDate {}", effectiveDate);
+            logger.info("Fecha efectiva aplicada: {}", effectiveDate);
 
             String respuesta = estafetaGuiaClient.generarGuia(jsonBody);
 

@@ -20,10 +20,11 @@ public class SecurityConfig {
         http
                 .csrf().disable()
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/auth/**").permitAll() // ✅ Permitir login sin token
                         .requestMatchers("/api/public/**").permitAll()
-                        .requestMatchers("/webhook/**").permitAll() // ✅ Permitir acceso público al webhook
                         .requestMatchers("/api/secure/**").authenticated()
                         .requestMatchers("/api/shopify/secure/**").authenticated()
+                        .requestMatchers("/api/webhook/**").permitAll()
                         .anyRequest().denyAll())
                 .addFilterBefore(accessTokenFilter, UsernamePasswordAuthenticationFilter.class)
                 .httpBasic().disable()
