@@ -67,8 +67,9 @@ public class WebhookController {
             }
 
         } catch (Exception ex) {
-            logger.error("❌ Error al procesar la orden", ex);
-            return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body("Error al enviar orden");
+            logger.error("❌ Error al procesar la OC, pero se responde 200 a Shopify para validar", ex);
+            return ResponseEntity.ok("Orden recibida pero ocurrió un error interno");
+
         }
     }
 }

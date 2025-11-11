@@ -85,4 +85,13 @@ public class Information {
     public void setDestinationZipCode(String destinationZipCode) {
         this.destinationZipCode = destinationZipCode;
     }
+
+    // 🔧 Métodos agregados para compatibilidad con EstafetaJob
+    public String getWaybillCode() {
+        return getWaybillNumber();
+    }
+
+    public String getReferenceCode() {
+        return getReference();
+    }
 }
