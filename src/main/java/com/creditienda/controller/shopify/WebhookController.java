@@ -57,7 +57,7 @@ public class WebhookController {
         }
 
         try {
-            boolean enviado = b2bService.enviarOrden(rawBody, token);
+            boolean enviado = b2bService.enviarOrden(rawBody, token, true);
             if (enviado) {
                 logger.info("se envío la OC y se registro");
                 return ResponseEntity.ok("Orden enviada correctamente");

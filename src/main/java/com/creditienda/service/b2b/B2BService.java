@@ -27,7 +27,7 @@ public class B2BService {
         this.notificacionService = notificacionService;
     }
 
-    public boolean enviarOrden(String rawBody, String token) {
+    public boolean enviarOrden(String rawBody, String token, boolean enviarNotificacion) {
         logger.info("📦 Enviando orden a B2B: {}", orderUrl);
 
         HttpHeaders headers = new HttpHeaders();
@@ -35,35 +35,53 @@ public class B2BService {
         headers.setBearerAuth(token);
 
         HttpEntity<String> entity = new HttpEntity<>(rawBody, headers);
-
         RestTemplate restTemplate = new RestTemplate();
 
         try {
             ResponseEntity<String> response = restTemplate.postForEntity(orderUrl, entity, String.class);
             logger.info("✅ Orden enviada. Código de respuesta: {}", response.getStatusCode());
 
-            notificacionService.enviarConfirmacion("✅ Orden enviada correctamente a B2B:\n" + rawBody);
+            if (enviarNotificacion) {
+                notificacionService.enviarConfirmacion("✅ Orden enviada correctamente a B2B:\n" + rawBody);
+            }
+
             return true;
+
         } catch (HttpClientErrorException.Conflict conflict) {
             String detalle = conflict.getResponseBodyAsString();
             logger.warn("⚠️ Orden ya registrada: {}", detalle);
 
-            notificacionService
-                    .enviarError("⚠️ Orden ya registrada en B2B:\n" + rawBody + "\n\nRespuesta:\n" + detalle);
+            if (enviarNotificacion) {
+                notificacionService
+                        .enviarError("⚠️ Orden ya registrada en B2B:\n" + rawBody + "\n\nRespuesta:\n" + detalle);
+            }
+
             return false;
+
         } catch (HttpClientErrorException ex) {
+            int codigo = ex.getStatusCode().value();
             String detalle = ex.getResponseBodyAsString();
-            logger.error("❌ Error HTTP al enviar orden: {}", detalle);
+            String mensaje = codigo + " → " + detalle;
 
-            notificacionService
-                    .enviarError("❌ Error HTTP al enviar orden a B2B:\n" + rawBody + "\n\nRespuesta:\n" + detalle);
-            throw new IllegalStateException("Error HTTP al enviar orden", ex);
+            logger.error("❌ Error HTTP al enviar orden: {}", mensaje);
+
+            if (enviarNotificacion) {
+                notificacionService
+                        .enviarError("❌ Error HTTP al enviar orden a B2B:\n" + rawBody + "\n\nRespuesta:\n" + mensaje);
+            }
+
+            throw new IllegalStateException(mensaje, ex);
+
         } catch (Exception ex) {
-            logger.error("❌ Error inesperado al enviar orden", ex);
+            String mensaje = "Error inesperado → " + (ex.getMessage() != null ? ex.getMessage() : "Sin detalle");
+            logger.error("❌ Error inesperado al enviar orden", ex.getMessage());
 
-            notificacionService.enviarError(
-                    "❌ Error inesperado al enviar orden a B2B:\n" + rawBody + "\n\nExcepción:\n" + ex.getMessage());
-            throw new IllegalStateException("Error inesperado al enviar orden", ex);
+            if (enviarNotificacion) {
+                notificacionService.enviarError(
+                        "❌ Error inesperado al enviar orden a B2B:\n" + rawBody + "\n\nExcepción:\n" + mensaje);
+            }
+
+            throw new IllegalStateException(mensaje, ex);
         }
     }
 }

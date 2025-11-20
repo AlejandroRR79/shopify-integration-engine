@@ -22,9 +22,10 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/auth/**").permitAll() // ✅ Permitir login sin token
                         .requestMatchers("/api/public/**").permitAll()
+                        .requestMatchers("/api/webhook/**").permitAll()
                         .requestMatchers("/api/secure/**").authenticated()
                         .requestMatchers("/api/shopify/secure/**").authenticated()
-                        .requestMatchers("/api/webhook/**").permitAll()
+                        .requestMatchers("/api/timbrado/secure/**").authenticated() // ✅ Nuevo endpoint protegido
                         .anyRequest().denyAll())
                 .addFilterBefore(accessTokenFilter, UsernamePasswordAuthenticationFilter.class)
                 .httpBasic().disable()
