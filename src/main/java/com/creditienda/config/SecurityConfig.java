@@ -20,6 +20,18 @@ public class SecurityConfig {
         http
                 .csrf().disable()
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(
+                                "/auth/**",
+                                "/api/public/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html",
+                                "/v3/api-docs/**",
+                                "/webjars/**", // ✅ necesario para Swagger UI
+                                "/resources/**",
+                                "/static/**",
+                                "/public/**",
+                                "/api/webhook/**")
+                        .permitAll()
                         .requestMatchers("/auth/**").permitAll() // ✅ Permitir login sin token
                         .requestMatchers("/api/public/**").permitAll()
                         .requestMatchers("/api/webhook/**").permitAll()

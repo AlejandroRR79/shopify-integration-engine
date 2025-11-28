@@ -35,4 +35,9 @@ public class NotificacionService {
     public void enviarResumen(String mensaje) {
         emailUtil.enviar(correoNotificacion, "📦 Resumen de sincronización Shopify → B2B", mensaje);
     }
+
+    public void enviarResumenProductos(String mensaje) {
+        emailUtil.enviar(correoNotificacion, "📦 Resumen de actualización de productos Shopify", mensaje);
+    }
+
 }

@@ -1,6 +1,7 @@
 package com.creditienda.controller.shopify;
 
 import java.time.LocalDate;
+import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,6 +45,24 @@ public class ShopifySyncController {
             logger.error("❌ Error general al procesar órdenes Shopify: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error general: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/ordenes-ids-por-dias")
+    public ResponseEntity<List<String>> obtenerOrdenesIdsPorDias(@RequestBody RangoFechasDTO fechas) {
+        LocalDate inicio = fechas.getFechaInicio();
+        LocalDate fin = fechas.getFechaFin();
+
+        if (inicio == null || fin == null) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        try {
+            List<String> ids = shopifyService.listarOrderIdsPorDias(inicio, fin);
+            return ResponseEntity.ok(ids);
+        } catch (Exception e) {
+            logger.error("❌ Error al listar IDs por días: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 }

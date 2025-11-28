@@ -2,6 +2,7 @@ package com.creditienda.service.shopify;
 
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -238,4 +239,57 @@ public class ShopifyProcesarOrderService {
         }
     }
 
+    /**
+     * Lista todos los IDs (order.id) dentro del rango, consultando día a día para
+     * evitar
+     * problemas de paginación en rangos grandes.
+     */
+    public List<String> listarOrderIdsPorDias(LocalDate fechaInicio, LocalDate fechaFin) {
+        logger.info("🔎 listarOrderIdsPorDias - rango: {} → {}", fechaInicio, fechaFin);
+
+        if (fechaInicio == null || fechaFin == null) {
+            logger.warn("⚠️ listarOrderIdsPorDias - fechaInicio o fechaFin nulo");
+            throw new IllegalArgumentException("fechaInicio y fechaFin son requeridas");
+        }
+        if (fechaInicio.isAfter(fechaFin)) {
+            logger.warn("⚠️ listarOrderIdsPorDias - fechaInicio {} es posterior a fechaFin {}", fechaInicio, fechaFin);
+            throw new IllegalArgumentException("fechaInicio no puede ser posterior a fechaFin");
+        }
+
+        List<String> ids = new ArrayList<>();
+        DateTimeFormatter df = DateTimeFormatter.ISO_LOCAL_DATE;
+
+        // Reutilizar el método que ya devuelve órdenes por rango
+        // (obtenerOrdenesEntreFechas)
+        LocalDate dia = fechaInicio;
+        while (!dia.isAfter(fechaFin)) {
+            logger.info("📆 listarOrderIdsPorDias - consultando día {}", dia);
+            try {
+                List<Map<String, Object>> ordenesDelDia = obtenerOrdenesEntreFechas(dia, dia);
+                logger.info("📦 {} órdenes obtenidas para {}", ordenesDelDia.size(), dia);
+
+                for (Map<String, Object> orden : ordenesDelDia) {
+                    Object id = orden.get("id");
+                    if (id != null) {
+                        ids.add(String.valueOf(id));
+                    }
+                }
+            } catch (Exception e) {
+                logger.error("❌ Error al obtener órdenes para {}: {}", dia, e.getMessage(), e);
+            }
+
+            try {
+                Thread.sleep(150); // respeto rate limit
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+            }
+            dia = dia.plusDays(1);
+        }
+
+        logger.info("🔚 listarOrderIdsPorDias completado - total IDs: {}", ids.size());
+        if (ids.isEmpty())
+            logger.warn("⚠️ listarOrderIdsPorDias devolvió lista vacía para rango {} → {}", fechaInicio, fechaFin);
+
+        return ids;
+    }
 }
