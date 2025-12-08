@@ -42,8 +42,10 @@
         <property name="jobFactory" ref="jobFactory" />
         <property name="triggers">
             <list>
+                <!--
                 <ref bean="triggerTimbrado" />
                 <ref bean="triggerEstafeta" />
+                -->
             </list>
         </property>
     </bean>

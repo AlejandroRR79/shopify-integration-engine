@@ -31,7 +31,7 @@ public class CoberturaEstafetaController {
     }
 
     // 🔓 Endpoint abierto con API Key
-    @PostMapping
+
     public ResponseEntity<String> validarCobertura(
             @RequestHeader(value = "x-make-apikey", required = false) String apiKey,
             @RequestBody CoberturaRequest request) {

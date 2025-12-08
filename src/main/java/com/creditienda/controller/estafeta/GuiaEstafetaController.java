@@ -36,7 +36,7 @@ public class GuiaEstafetaController {
     }
 
     // 🔓 Endpoint abierto con API Key
-    @PostMapping
+
     public ResponseEntity<String> generarGuia(
             @RequestHeader(value = "x-make-apikey", required = false) String apiKey,
             @RequestBody String jsonBody) {
