@@ -72,41 +72,12 @@ public class ComplementoPagoService {
     }
 
     public void procesarSeleccionados(List<Map<String, Object>> registros) {
-        int idx = 0;
-        for (Map<String, Object> r : registros) {
-            idx++;
-            log.info("Registro seleccionado {}: {}", idx, r);
-        }
-        log.info("Procesados {} registros seleccionados", registros.size());
-    }
-
-    public void procesarSeleccionados(List<Map<String, Object>> registros) {
-        // Aquí recibes los registros seleccionados ya normalizados desde el frontend
-        registros.forEach(r -> {
-            System.out.println("Registro seleccionado: " + r);
-            // Guardar en BD o procesar según tu lógica
-        });
-    }
-
-    private String obtenerValor(Cell cell) {
-        return switch (cell.getCellType()) {
-            case STRING -> cell.getStringCellValue();
-            case NUMERIC -> DateUtil.isCellDateFormatted(cell)
-                    ? cell.getDateCellValue().toString()
-                    : String.valueOf(cell.getNumericCellValue());
-            case BOOLEAN -> String.valueOf(cell.getBooleanCellValue());
-            case FORMULA -> cell.getCellFormula();
-            case BLANK -> "";
-            default -> "[tipo desconocido]";
-        };
-    }
-
-    public void procesarSeleccionados(List<Map<String, Object>> registros) {
         for (int i = 0; i < registros.size(); i++) {
             Map<String, Object> fila = registros.get(i);
             log.info("Procesando fila seleccionada {}: {}", i + 1, fila);
             // Aquí implementas la lógica de negocio: guardar en BD, validar, etc.
         }
+        log.info("Procesados {} registros seleccionados", registros.size());
     }
 
 }
