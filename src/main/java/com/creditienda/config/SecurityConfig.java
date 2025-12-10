@@ -34,6 +34,13 @@ public class SecurityConfig {
                         .permitAll()
                         .requestMatchers("/auth/**").permitAll() // ✅ Permitir login sin token
                         .requestMatchers("/api/public/**").permitAll()
+                        .requestMatchers(
+                                "/login.html",
+                                "/upload.html",
+                                "/css/**", // ✅ permite cargar estilos
+                                "/js/**", // opcional si usas scripts
+                                "/images/**" // opcional si usas imágenes
+                        ).permitAll()
                         .requestMatchers("/api/webhook/**").permitAll()
                         .requestMatchers("/api/secure/**").authenticated()
                         .requestMatchers("/api/shopify/secure/**").authenticated()
