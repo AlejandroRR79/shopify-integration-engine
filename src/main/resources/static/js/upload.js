@@ -115,7 +115,6 @@ function renderTable(header, dataRows) {
     let html = "<table><thead><tr><th>Cargar</th><th>Observación</th>";
     header.forEach(col => html += `<th>${col || "Columna"}</th>`);
     html += "</tr></thead><tbody>";
-
     let groupIndex = 0;
     const groups = {};
     normalized.forEach(r => {
@@ -133,12 +132,10 @@ function renderTable(header, dataRows) {
             row.forEach(cell => {
                 let val = cell ?? "";
                 if (typeof val === "number") {
-                    // fuerza a string para evitar notación científica
                     val = val.toLocaleString("en-US", { useGrouping: false });
                 }
                 html += `<td>${val}</td>`;
             });
-
             html += "</tr>";
         });
         groupIndex++;
@@ -162,9 +159,28 @@ function renderTable(header, dataRows) {
 
     updateCounters();
 }
-/**
- * Subir seleccionados → /uploadSelected
- */
+
+/** Función auxiliar para pintar errores en tabla */
+function renderErrorsTable(errors) {
+    const previewDiv = document.getElementById("preview");
+    let html = "<table class='tabla'><thead><tr>";
+    html += "<th>Fila</th><th>Número Orden</th><th>UUID Excel</th><th>Mensaje</th>";
+    html += "</tr></thead><tbody>";
+
+    errors.forEach(item => {
+        html += "<tr>";
+        html += `<td>${item.fila ?? ""}</td>`;
+        html += `<td>${item.numeroOrden ?? ""}</td>`;
+        html += `<td>${item.uuidExcel ?? ""}</td>`;
+        html += `<td>${item.mensajeError ?? "OK"}</td>`;
+        html += "</tr>";
+    });
+
+    html += "</tbody></table>";
+    previewDiv.innerHTML = html;
+}
+
+/** Subir seleccionados → /uploadSelected */
 document.getElementById("uploadForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     const statusDiv = document.getElementById("status");
@@ -198,15 +214,17 @@ document.getElementById("uploadForm").addEventListener("submit", async (e) => {
         const data = await res.json().catch(() => ({}));
         statusDiv.textContent = res.ok ? (data.mensaje || "Registros enviados.") : (data.error || "Error al enviar.");
         statusDiv.className = res.ok ? "success" : "error";
+
+        if (Array.isArray(data) && data.length > 0) {
+            renderErrorsTable(data);
+        }
     } catch (err) {
         statusDiv.textContent = "Error de red o servidor";
         statusDiv.className = "error";
     }
 });
 
-/**
- * Cargar archivo completo → /upload
- */
+/** Cargar archivo completo → /upload */
 document.getElementById("uploadAllBtn").addEventListener("click", async () => {
     const statusDiv = document.getElementById("status");
     const fileInput = document.getElementById("fileInput");
@@ -232,6 +250,11 @@ document.getElementById("uploadAllBtn").addEventListener("click", async () => {
         const data = await res.json().catch(() => ({}));
         statusDiv.textContent = res.ok ? (data.mensaje || "Archivo completo enviado.") : (data.error || "Error al enviar.");
         statusDiv.className = res.ok ? "success" : "error";
+
+        // 🚨 Pintar errores si vienen en la respuesta
+        if (Array.isArray(data) && data.length > 0) {
+            renderErrorsTable(data);
+        }
 
     } catch (err) {
         statusDiv.textContent = "Error de red o servidor";

@@ -3,6 +3,8 @@ package com.creditienda.config;
 import java.io.IOException;
 import java.util.Collections;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -22,6 +24,8 @@ import jakarta.servlet.http.HttpServletResponse;
 @Component
 public class AccessTokenFilter extends OncePerRequestFilter {
 
+    private static final Logger log = LogManager.getLogger(AccessTokenFilter.class);
+
     @Autowired
     private JwtUtil jwtUtil;
 
@@ -30,28 +34,66 @@ public class AccessTokenFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain) throws ServletException, IOException {
 
+        String path = request.getServletPath();
+        log.debug("👉 Ejecutando AccessTokenFilter para ruta: {}", path);
+
         String authHeader = request.getHeader("Authorization");
+        log.debug("🔍 Authorization header recibido: {}", authHeader);
 
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            String token = authHeader.substring(7); // Quita "Bearer "
+            String token = authHeader.substring(7);
+            log.debug("🔐 Token detectado, iniciando validación...");
 
             try {
                 Claims claims = jwtUtil.validarToken(token);
                 String username = claims.getSubject();
 
-                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(username,
-                        null, Collections.emptyList());
+                log.info("✅ Token válido. Usuario autenticado: {}", username);
 
-                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                        username,
+                        null,
+                        Collections.emptyList());
+
+                authentication.setDetails(
+                        new WebAuthenticationDetailsSource().buildDetails(request));
+
                 SecurityContextHolder.getContext().setAuthentication(authentication);
 
+                // 🔥 AGREGAR ESTO PARA QUE SPRING NO BORRE LA AUTENTICACIÓN
+                request.setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
+
             } catch (JwtException e) {
-                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                response.getWriter().write("Token inválido o expirado");
+                log.error("❌ Token inválido o expirado: {}", e.getMessage());
+                SecurityContextHolder.clearContext();
                 return;
             }
+        } else {
+            log.debug("⚠ No se envió token en la cabecera Authorization.");
         }
 
+        log.debug("➡ Continuando al siguiente filtro en la cadena...");
         filterChain.doFilter(request, response);
+    }
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+
+        String path = request.getServletPath();
+
+        boolean skip = path.startsWith("/auth/")
+                || path.startsWith("/api/public/")
+                || path.startsWith("/api/webhook/")
+                || path.startsWith("/swagger")
+                || path.startsWith("/v3/api-docs")
+                || path.startsWith("/resources/")
+                || path.startsWith("/static/")
+                || path.startsWith("/css/")
+                || path.startsWith("/js/")
+                || path.startsWith("/images/");
+
+        log.debug("🔎 shouldNotFilter? ruta={} → {}", path, skip);
+
+        return skip;
     }
 }
