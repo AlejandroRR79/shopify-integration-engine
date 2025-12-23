@@ -87,7 +87,15 @@ public class EnvironmentController {
                 "b2b.oc.auth.usuario",
                 "b2b.oc.auth.empresa",
                 "b2b.oc.auth.password",
-                "b2b.order.url"
+                "b2b.order.url",
+                "spring.datasource.url",
+                "spring.datasource.username",
+                "spring.datasource.password",
+                "spring.datasource.driver-class-name",
+
+                "spring.jpa.hibernate.ddl-auto",
+                "spring.jpa.show-sql",
+                "spring.jpa.database-platform"
         };
 
         for (String key : keys) {

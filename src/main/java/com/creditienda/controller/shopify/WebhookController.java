@@ -43,6 +43,8 @@ public class WebhookController {
             @RequestHeader(value = "X-Shopify-Hmac-Sha256", required = false) String hmac,
             @RequestBody String rawBody) {
 
+        logger.debug("Entrando al controlador ");
+
         if (!hmacValidator.validar(rawBody, hmac)) {
             logger.warn("❌ Firma HMAC inválida para payload: {}", rawBody);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Firma HMAC inválida");

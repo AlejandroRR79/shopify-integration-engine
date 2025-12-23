@@ -16,7 +16,7 @@ import com.creditienda.dto.CoberturaRequest;
 import com.creditienda.service.EstafetaCoberturaClient;
 
 @RestController
-@RequestMapping("/api/public/cobertura")
+@RequestMapping("/api/estafeta/cobertura")
 public class CoberturaEstafetaController {
 
     private static final Logger logger = LoggerFactory.getLogger(CoberturaEstafetaController.class);

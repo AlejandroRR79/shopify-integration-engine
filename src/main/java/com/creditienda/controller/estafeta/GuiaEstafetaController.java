@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.creditienda.service.EstafetaGuiaClient;
 
 @RestController
-@RequestMapping("/api/public/guia")
+@RequestMapping("/api/estafeta/guia")
 public class GuiaEstafetaController {
 
     private static final Logger logger = LoggerFactory.getLogger(GuiaEstafetaController.class);

@@ -20,8 +20,9 @@ public class EstafetHistorialClient {
 
     private static final Logger logger = LoggerFactory.getLogger(EstafetHistorialClient.class);
 
-    private String cachedToken;
-    private long tokenExpirationTime;
+    // 🔒 Ajuste leve: volatile para concurrencia
+    private volatile String cachedToken;
+    private volatile long tokenExpirationTime;
 
     @Value("${estafeta.token.url}")
     private String tokenUrl;
@@ -47,6 +48,7 @@ public class EstafetHistorialClient {
     @Value("${estafeta.input.type}")
     private int inputType;
 
+    // ❗ Se respeta: NO bean, NO constructor
     private final RestTemplate restTemplate = new RestTemplate();
 
     // 🔹 Método 1: recibe JSON completo
@@ -80,47 +82,64 @@ public class EstafetHistorialClient {
         headers.setBearerAuth(token);
         headers.set("apikey", apiKey);
 
-        logger.info("📤 Enviando solicitud a Estafeta con cuerpo: {}", body);
+        logger.info("📤 Enviando solicitud a Estafeta");
 
         HttpEntity<String> entity = new HttpEntity<>(body, headers);
         ResponseEntity<String> response = restTemplate.exchange(apiUrl, HttpMethod.POST, entity, String.class);
 
-        logger.info("📥 Respuesta recibida de Estafeta: {}", response.getBody());
+        logger.info("📥 Respuesta recibida de Estafeta");
         return response.getBody();
     }
 
-    // 🔐 Obtención de token OAuth2 con caché
+    // 🔐 Obtención de token OAuth2 con caché (NO se pide hasta expirar)
     private String obtenerToken() {
         long now = System.currentTimeMillis();
 
+        // ✅ Fast-path: no sincroniza si aún es válido
         if (cachedToken != null && now < tokenExpirationTime) {
-            logger.info("🔁 Usando token en caché");
+            logger.debug("🔁 Usando token en caché");
             return cachedToken;
         }
 
-        logger.info("🔐 Solicitando nuevo token OAuth2...");
+        // 🔒 Ajuste leve: synchronized SOLO al renovar
+        synchronized (this) {
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+            // Double-check
+            if (cachedToken != null && now < tokenExpirationTime) {
+                return cachedToken;
+            }
 
-        MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
-        params.add("grant_type", grantType);
-        params.add("client_id", clientId);
-        params.add("client_secret", clientSecret);
-        params.add("scope", scope);
+            logger.info("🔐 Token expirado o inexistente, solicitando nuevo token OAuth2...");
 
-        HttpEntity<MultiValueMap<String, String>> entity = new HttpEntity<>(params, headers);
-        ResponseEntity<Map> response = restTemplate.exchange(tokenUrl, HttpMethod.POST, entity, Map.class);
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
-        if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-            cachedToken = (String) response.getBody().get("access_token");
-            Integer expiresIn = (Integer) response.getBody().get("expires_in");
-            tokenExpirationTime = now + (expiresIn - 60) * 1000;
-            logger.info("🔑 Nuevo token recibido y almacenado en caché");
-            return cachedToken;
-        } else {
-            logger.error("❌ Error al obtener token: {}", response.getStatusCode());
-            throw new RuntimeException("Error al obtener token");
+            MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+            params.add("grant_type", grantType);
+            params.add("client_id", clientId);
+            params.add("client_secret", clientSecret);
+            params.add("scope", scope);
+
+            HttpEntity<MultiValueMap<String, String>> entity = new HttpEntity<>(params, headers);
+
+            ResponseEntity<Map> response = restTemplate.exchange(tokenUrl, HttpMethod.POST, entity, Map.class);
+
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+
+                cachedToken = (String) response.getBody().get("access_token");
+
+                // 🔧 Ajuste leve: Number en vez de Integer
+                Number expiresIn = (Number) response.getBody().get("expires_in");
+
+                // margen de seguridad 60s
+                tokenExpirationTime = now + (expiresIn.longValue() - 60) * 1000;
+
+                logger.info("🔑 Nuevo token recibido y almacenado en caché");
+                return cachedToken;
+            }
+
+            logger.error("❌ Error al obtener token OAuth2: {}", response.getStatusCode());
+            throw new RuntimeException("Error al obtener token OAuth2");
         }
     }
 }

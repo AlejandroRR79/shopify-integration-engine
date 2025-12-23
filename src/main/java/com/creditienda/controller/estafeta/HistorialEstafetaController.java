@@ -2,27 +2,23 @@ package com.creditienda.controller.estafeta;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.creditienda.service.EstafetHistorialClient;
 
 @RestController
-@RequestMapping("/api/public/historial")
+@RequestMapping("/api/estafeta/historial")
 public class HistorialEstafetaController {
 
     private static final Logger logger = LoggerFactory.getLogger(HistorialEstafetaController.class);
 
     private final EstafetHistorialClient estafetHistorialClient;
-
-    @Value("${estafeta.make.apikey}")
-    private String expectedApiKey;
 
     public HistorialEstafetaController(EstafetHistorialClient estafetHistorialClient) {
         this.estafetHistorialClient = estafetHistorialClient;
@@ -30,32 +26,33 @@ public class HistorialEstafetaController {
 
     @PostMapping
     public ResponseEntity<String> consultarHistorial(
-            @RequestHeader(value = "x-make-apikey", required = false) String apiKey,
-            @RequestBody(required = false) String jsonBody) {
+            @RequestBody(required = false) String jsonBody,
+            Authentication authentication) {
 
-        if (apiKey == null || apiKey.isBlank()) {
-            logger.warn("Header x-make-apikey no proporcionado");
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Error: Header x-make-apikey requerido");
-        }
-
-        if (!expectedApiKey.equals(apiKey)) {
-            logger.warn("API Key inválida: {}", apiKey);
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Error: API Key no autorizada");
+        // 🔐 Seguridad: JWT obligatorio
+        if (authentication == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body("No autenticado");
         }
 
         try {
-            logger.info("Solicitud recibida para consultar historial de guía");
+            logger.info("Consulta historial Estafeta solicitada por: {}", authentication.getName());
 
             if (jsonBody == null || jsonBody.isBlank()) {
-                return ResponseEntity.badRequest().body("Error: JSON del cuerpo requerido");
+                return ResponseEntity.badRequest()
+                        .body("Error: JSON del cuerpo requerido");
             }
 
+            // 🔁 Passthrough puro (no se manipula respuesta de Estafeta)
             String respuesta = estafetHistorialClient.consultarHistorial(jsonBody);
-            logger.info("Respuesta de Estafeta: {}", respuesta);
+
+            logger.info("Respuesta de Estafeta (historial) recibida correctamente");
             return ResponseEntity.ok(respuesta);
+
         } catch (Exception e) {
-            logger.error("Error al consultar historial: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error: " + e.getMessage());
+            logger.error("Error al consultar historial Estafeta", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error: " + e.getMessage());
         }
     }
 }

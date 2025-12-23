@@ -27,14 +27,6 @@ public class SecurityConfig {
                                 .authorizeHttpRequests(auth -> auth
                                                 .requestMatchers(
                                                                 "/auth/**",
-                                                                "/api/public/**",
-                                                                "/swagger-ui/**",
-                                                                "/swagger-ui.html",
-                                                                "/v3/api-docs/**",
-                                                                "/webjars/**",
-                                                                "/resources/**",
-                                                                "/static/**",
-                                                                "/public/**",
                                                                 "/api/webhook/**")
                                                 .permitAll()
 
@@ -54,6 +46,7 @@ public class SecurityConfig {
                                                 .requestMatchers("/api/logs/**").authenticated()
                                                 .requestMatchers("/api/shopify/secure/**").authenticated()
                                                 .requestMatchers("/api/timbrado/secure/**").authenticated()
+                                                .requestMatchers("/api/estafeta/**").authenticated()
                                                 .anyRequest().denyAll())
                                 .addFilterBefore(accessTokenFilter, UsernamePasswordAuthenticationFilter.class)
                                 .httpBasic().disable()

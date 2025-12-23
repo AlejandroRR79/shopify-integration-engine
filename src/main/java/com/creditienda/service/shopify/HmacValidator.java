@@ -19,6 +19,7 @@ public class HmacValidator {
 
     public boolean validar(String rawBody, String headerHmac) {
         if (!shopify.getWebhook().isEnabled())
+
             return true;
 
         try {
