@@ -11,11 +11,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.creditienda.service.EstafetaGuiaClient;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @RestController
 @RequestMapping("/api/estafeta/guia")
@@ -24,9 +24,7 @@ public class GuiaEstafetaController {
     private static final Logger logger = LoggerFactory.getLogger(GuiaEstafetaController.class);
 
     private final EstafetaGuiaClient estafetaGuiaClient;
-
-    @Value("${estafeta.guia.make.apikey}")
-    private String expectedApiKey;
+    private final ObjectMapper mapper = new ObjectMapper();
 
     @Value("${estafeta.guia.effective-date.offset-days}")
     private int effectiveDateOffsetDays;
@@ -35,59 +33,63 @@ public class GuiaEstafetaController {
         this.estafetaGuiaClient = estafetaGuiaClient;
     }
 
-    // 🔓 Endpoint abierto con API Key
-
-    public ResponseEntity<String> generarGuia(
-            @RequestHeader(value = "x-make-apikey", required = false) String apiKey,
-            @RequestBody String jsonBody) {
-
-        if (apiKey == null || apiKey.isBlank()) {
-            logger.warn("Header x-make-apikey no proporcionado");
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Error: Header x-make-apikey requerido");
-        }
-
-        if (!expectedApiKey.equals(apiKey)) {
-            logger.warn("API Key inválida: {}", apiKey);
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Error: API Key no autorizada");
-        }
-
-        return procesarGuia(jsonBody, "APIKey");
-    }
-
-    // 🔐 Endpoint protegido con JWT
     @PostMapping("/secure")
     public ResponseEntity<String> generarGuiaProtegida(
             @RequestBody String jsonBody,
             Authentication authentication) {
 
-        String usuario = authentication.getName(); // extraído del token
-        logger.info("Petición autenticada por JWT: {}", usuario);
-
-        return procesarGuia(jsonBody, usuario);
+        return procesarGuia(jsonBody, authentication.getName());
     }
 
-    // 🔁 Lógica compartida
-    private ResponseEntity<String> procesarGuia(String jsonBody, String origenPeticion) {
+    // ===================== CORE =====================
+
+    private ResponseEntity<String> procesarGuia(
+            String jsonBody,
+            String origenPeticion) {
+
         try {
-            logger.info("Solicitud recibida para generar guía ({})", origenPeticion);
+            logger.info("Generando guía ({})", origenPeticion);
 
             String effectiveDate = LocalDate.now()
                     .plusDays(effectiveDateOffsetDays)
                     .format(DateTimeFormatter.ofPattern("yyyyMMdd"));
 
-            jsonBody = jsonBody.replaceAll("\"effectiveDate\"\\s*:\\s*\"[^\"]*\"",
+            jsonBody = jsonBody.replaceAll(
+                    "\"effectiveDate\"\\s*:\\s*\"[^\"]*\"",
                     "\"effectiveDate\":\"" + effectiveDate + "\"");
-
-            logger.info("Json recibido y actualizada la fecha: {}", jsonBody);
-            logger.info("Fecha efectiva aplicada: {}", effectiveDate);
 
             String respuesta = estafetaGuiaClient.generarGuia(jsonBody);
 
-            logger.info("Respuesta de Estafeta recibida correctamente");
             return ResponseEntity.ok(respuesta);
+
         } catch (Exception e) {
-            logger.error("Error al generar guía: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error: " + e.getMessage());
+            logger.error("Error al generar guía", e);
+
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body(e.getMessage());
+        }
+    }
+
+    // ===================== ERROR JSON =====================
+
+    private String buildErrorJson(String message) {
+        try {
+            return mapper.writeValueAsString(
+                    new ErrorResponse(false, message));
+        } catch (Exception e) {
+            return "{\"success\":false,\"message\":\"Error inesperado\"}";
+        }
+    }
+
+    // DTO interno simple
+    static class ErrorResponse {
+        public boolean success;
+        public String message;
+
+        public ErrorResponse(boolean success, String message) {
+            this.success = success;
+            this.message = message;
         }
     }
 }

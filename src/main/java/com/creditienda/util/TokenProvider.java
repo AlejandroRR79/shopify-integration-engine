@@ -4,7 +4,6 @@ import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -21,16 +20,16 @@ public class TokenProvider {
 
     private static final Logger logger = LoggerFactory.getLogger(TokenProvider.class);
 
-    @Value("${b2b.auth.url}")
+    // @Value("${b2b.auth.url}")
     private String authUrl;
 
-    @Value("${b2b.auth.idEmpresa}")
+    // @Value("${b2b.auth.idEmpresa}")
     private String idEmpresa;
 
-    @Value("${b2b.auth.clave}")
+    // @Value("${b2b.auth.clave}")
     private String clave;
 
-    @Value("${b2b.auth.password}")
+    // @Value("${b2b.auth.password}")
     private String password;
 
     private final RestTemplate restTemplate = new RestTemplate();

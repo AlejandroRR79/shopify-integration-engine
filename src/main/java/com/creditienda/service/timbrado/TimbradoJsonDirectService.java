@@ -2,7 +2,6 @@ package com.creditienda.service.timbrado;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -21,10 +20,10 @@ public class TimbradoJsonDirectService {
     private final RestTemplate restTemplate = new RestTemplate();
     private final TokenProvider tokenProvider;
 
-    @Value("${b2b.endpoint.timbre}")
+    // @Value("${b2b.endpoint.timbre}")
     private String urlTimbre;
 
-    @Value("${b2b.endpoint.descargaPdf}")
+    // @Value("${b2b.endpoint.descargaPdf}")
     private String urlDescargaPdf;
 
     public TimbradoJsonDirectService(TokenProvider tokenProvider) {

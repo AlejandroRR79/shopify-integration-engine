@@ -19,10 +19,10 @@ public class TimbradoDirectController {
 
     private static final Logger logger = LoggerFactory.getLogger(TimbradoDirectController.class);
 
-    private final TimbradoJsonDirectService timbradoService;
+    // private final TimbradoJsonDirectService timbradoService;
 
     public TimbradoDirectController(TimbradoJsonDirectService timbradoService) {
-        this.timbradoService = timbradoService;
+        // this.timbradoService = timbradoService;
     }
 
     @PostMapping("/timbre")
@@ -30,8 +30,9 @@ public class TimbradoDirectController {
         logger.info("📥 Solicitud recibida para timbrado directo");
 
         try {
-            String respuesta = timbradoService.timbrarDesdeJson(jsonCrudo);
-            return ResponseEntity.ok(respuesta);
+            // String respuesta = timbradoService.timbrarDesdeJson(jsonCrudo);
+            // return ResponseEntity.ok(respuesta);
+            return ResponseEntity.ok("Ok");
         } catch (Exception e) {
             logger.error("❌ Error en timbrado directo: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -48,8 +49,9 @@ public class TimbradoDirectController {
         }
 
         try {
-            String pdfBase64 = timbradoService.descargarPdfPorUuid(uuidCfdi);
-            return ResponseEntity.ok(pdfBase64);
+            // String pdfBase64 = timbradoService.descargarPdfPorUuid(uuidCfdi);
+            // return ResponseEntity.ok(pdfBase64);
+            return ResponseEntity.ok("Ok");
         } catch (Exception e) {
             logger.error("❌ Error al descargar PDF por UUID: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

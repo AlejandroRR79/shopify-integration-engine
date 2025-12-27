@@ -11,6 +11,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 
 @Service
@@ -60,9 +62,15 @@ public class EstafetaGuiaClient {
         String fullUrl = apiUrl + "?" + apiQuery;
 
         HttpEntity<String> entity = new HttpEntity<>(jsonBody, headers);
-        ResponseEntity<String> response = restTemplate.exchange(fullUrl, HttpMethod.POST, entity, String.class);
+        try {
+            ResponseEntity<String> response = restTemplate.exchange(fullUrl, HttpMethod.POST, entity, String.class);
 
-        return response.getBody();
+            return response.getBody();
+
+        } catch (HttpClientErrorException | HttpServerErrorException e) {
+            // 🔥 SOLO el JSON real de Estafeta
+            throw new RuntimeException(e.getResponseBodyAsString());
+        }
     }
 
     private String obtenerToken() {
