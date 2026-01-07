@@ -4,6 +4,7 @@ import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -48,8 +49,8 @@ public class EstafetHistorialClient {
     @Value("${estafeta.input.type}")
     private int inputType;
 
-    // ❗ Se respeta: NO bean, NO constructor
-    private final RestTemplate restTemplate = new RestTemplate();
+    @Autowired
+    private RestTemplate restTemplate;
 
     // 🔹 Método 1: recibe JSON completo
     public String consultarHistorial(String jsonBody) {
@@ -75,6 +76,7 @@ public class EstafetHistorialClient {
 
     // 🔒 Método privado común para ejecutar la consulta
     private String ejecutarConsulta(String body) {
+
         String token = obtenerToken();
 
         HttpHeaders headers = new HttpHeaders();
@@ -82,12 +84,28 @@ public class EstafetHistorialClient {
         headers.setBearerAuth(token);
         headers.set("apikey", apiKey);
 
-        logger.info("📤 Enviando solicitud a Estafeta");
+        // 🔎 LOG: URL destino
+        logger.info("🌐 Estafeta URL: {}", apiUrl);
+        logger.info("RestTemplate usado={}", restTemplate.getClass());
+
+        // 🔎 LOG: Headers (sin exponer token completo)
+        logger.info("📨 Headers enviados: Content-Type={}, apikey={}",
+                headers.getContentType(),
+                apiKey);
+
+        // 🔎 LOG: Body enviado
+        logger.info("📤 Body enviado a Estafeta:\n{}", body);
 
         HttpEntity<String> entity = new HttpEntity<>(body, headers);
+
         ResponseEntity<String> response = restTemplate.exchange(apiUrl, HttpMethod.POST, entity, String.class);
 
-        logger.info("📥 Respuesta recibida de Estafeta");
+        // 🔎 LOG: HTTP status
+        logger.info("📥 Estafeta HTTP Status: {}", response.getStatusCode());
+
+        // 🔎 LOG: Respuesta
+        logger.debug("📥 Respuesta Estafeta:\n{}", response.getBody());
+
         return response.getBody();
     }
 

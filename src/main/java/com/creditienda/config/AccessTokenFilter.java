@@ -66,7 +66,20 @@ public class AccessTokenFilter extends OncePerRequestFilter {
             } catch (JwtException e) {
                 log.error("❌ Token inválido o expirado: {}", e.getMessage());
                 SecurityContextHolder.clearContext();
-                return;
+
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.setContentType("application/json");
+                response.setCharacterEncoding("UTF-8");
+
+                response.getWriter().write("""
+                            {
+                              "error": "INVALID_TOKEN",
+                              "message": "Access token inválido o expirado"
+                            }
+                        """);
+
+                response.getWriter().flush();
+                return; // 🔥 CORTA LA PETICIÓN
             }
         } else {
             log.debug("⚠ No se envió token en la cabecera Authorization.");

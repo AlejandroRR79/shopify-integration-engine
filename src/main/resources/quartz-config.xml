@@ -15,12 +15,7 @@
     </bean>
     <bean id="triggerEstafeta" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
         <property name="jobDetail" ref="jobEstafeta" />
-        <!--
         <property name="cronExpression" value="0 0/1 * * * ?" />
-        -->
-        <property
-            name="cronExpression" value="0 0 0/12 * * ?" />
-
     </bean>
 
     <!-- Job Timbrado -->
@@ -44,8 +39,9 @@
             <list>
                 <!--
                 <ref bean="triggerTimbrado" />
-                <ref bean="triggerEstafeta" />
                 -->
+                <ref bean="triggerEstafeta" />
+
             </list>
         </property>
     </bean>

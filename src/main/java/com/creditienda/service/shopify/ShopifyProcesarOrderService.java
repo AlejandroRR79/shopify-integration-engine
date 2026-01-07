@@ -10,6 +10,7 @@ import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -41,7 +42,9 @@ public class ShopifyProcesarOrderService {
     @Value("${shopify.access.token}")
     private String accessToken;
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    @Autowired
+    private RestTemplate restTemplate;
+
     private final B2BService b2bService;
     private final B2BTokenService b2bTokenService;
     private final NotificacionService notificacionService;

@@ -3,6 +3,7 @@ package com.creditienda.model;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class EstafetaResponse {
@@ -35,36 +36,9 @@ public class EstafetaResponse {
         this.items = items;
     }
 
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    public static class ItemHistory {
-        private ErrorInfo error;
-        private Information information;
-        private List<History> histories;
-
-        public ErrorInfo getError() {
-            return error;
-        }
-
-        public void setError(ErrorInfo error) {
-            this.error = error;
-        }
-
-        public Information getInformation() {
-            return information;
-        }
-
-        public void setInformation(Information information) {
-            this.information = information;
-        }
-
-        public List<History> getHistories() {
-            return histories;
-        }
-
-        public void setHistories(List<History> histories) {
-            this.histories = histories;
-        }
-    }
+    // ======================================================
+    // ===================== RESULT =========================
+    // ======================================================
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Result {
@@ -97,46 +71,32 @@ public class EstafetaResponse {
         }
     }
 
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    public static class History {
-        private String spanishDescription;
-        private String eventDateTime;
-        private String warehouseName;
-
-        public String getSpanishDescription() {
-            return spanishDescription;
-        }
-
-        public void setSpanishDescription(String spanishDescription) {
-            this.spanishDescription = spanishDescription;
-        }
-
-        public String getEventDateTime() {
-            return eventDateTime;
-        }
-
-        public void setEventDateTime(String eventDateTime) {
-            this.eventDateTime = eventDateTime;
-        }
-
-        public String getWarehouseName() {
-            return warehouseName;
-        }
-
-        public void setWarehouseName(String warehouseName) {
-            this.warehouseName = warehouseName;
-        }
-    }
+    // ======================================================
+    // ===================== ITEM ===========================
+    // ======================================================
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Item {
+
         private Information information;
         private Service service;
+
+        @JsonProperty("package")
         private PackageInfo packageInfo;
+
         private PickupDetails pickupDetails;
         private Status statusCurrent;
         private DeliveryDetails deliveryDetails;
         private List<Status> status;
+        private ErrorInfo error; // 👈 NUEVO (CLAVE)
+
+        public ErrorInfo getError() {
+            return error;
+        }
+
+        public void setError(ErrorInfo error) {
+            this.error = error;
+        }
 
         public Information getInformation() {
             return information;
@@ -195,11 +155,53 @@ public class EstafetaResponse {
         }
     }
 
+    // ======================================================
+    // ================= INFORMATION ========================
+    // ======================================================
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class Information {
+
+        private String originalWaybill;
+        private String waybillCode;
+        private String trackingCode;
+
+        public String getOriginalWaybill() {
+            return originalWaybill;
+        }
+
+        public void setOriginalWaybill(String originalWaybill) {
+            this.originalWaybill = originalWaybill;
+        }
+
+        public String getWaybillCode() {
+            return waybillCode;
+        }
+
+        public void setWaybillCode(String waybillCode) {
+            this.waybillCode = waybillCode;
+        }
+
+        public String getTrackingCode() {
+            return trackingCode;
+        }
+
+        public void setTrackingCode(String trackingCode) {
+            this.trackingCode = trackingCode;
+        }
+    }
+
+    // ======================================================
+    // ===================== STATUS =========================
+    // ======================================================
+
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Status {
+
         private String code;
         private String spanishName;
-        private String eventDateTime;
+        private String englishName;
+        private String localDateTime;
         private String warehouseName;
 
         public String getCode() {
@@ -218,12 +220,20 @@ public class EstafetaResponse {
             this.spanishName = spanishName;
         }
 
-        public String getEventDateTime() {
-            return eventDateTime;
+        public String getEnglishName() {
+            return englishName;
         }
 
-        public void setEventDateTime(String eventDateTime) {
-            this.eventDateTime = eventDateTime;
+        public void setEnglishName(String englishName) {
+            this.englishName = englishName;
+        }
+
+        public String getLocalDateTime() {
+            return localDateTime;
+        }
+
+        public void setLocalDateTime(String localDateTime) {
+            this.localDateTime = localDateTime;
         }
 
         public String getWarehouseName() {
@@ -235,30 +245,13 @@ public class EstafetaResponse {
         }
     }
 
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    public static class ErrorInfo {
-        private String code;
-        private String description;
-
-        public String getCode() {
-            return code;
-        }
-
-        public void setCode(String code) {
-            this.code = code;
-        }
-
-        public String getDescription() {
-            return description;
-        }
-
-        public void setDescription(String description) {
-            this.description = description;
-        }
-    }
+    // ======================================================
+    // ===================== SERVICE ========================
+    // ======================================================
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Service {
+
         private String code;
         private String spanishName;
         private String estimatedDeliveryDate;
@@ -288,8 +281,13 @@ public class EstafetaResponse {
         }
     }
 
+    // ======================================================
+    // ================== PACKAGE INFO ======================
+    // ======================================================
+
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class PackageInfo {
+
         private String nameType;
         private double weight;
 
@@ -310,8 +308,13 @@ public class EstafetaResponse {
         }
     }
 
+    // ======================================================
+    // ================= PICKUP DETAILS =====================
+    // ======================================================
+
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class PickupDetails {
+
         private String warehouseCode;
         private String pickupDateTime;
 
@@ -332,8 +335,13 @@ public class EstafetaResponse {
         }
     }
 
+    // ======================================================
+    // =============== DELIVERY DETAILS =====================
+    // ======================================================
+
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class DeliveryDetails {
+
         private String receiverName;
         private double latitude;
         private double longitude;
@@ -360,6 +368,105 @@ public class EstafetaResponse {
 
         public void setLongitude(double longitude) {
             this.longitude = longitude;
+        }
+    }
+
+    // ======================================================
+    // ================= ITEM HISTORY =======================
+    // ======================================================
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class ItemHistory {
+
+        private ErrorInfo error;
+        private Information information;
+        private List<History> histories;
+
+        public ErrorInfo getError() {
+            return error;
+        }
+
+        public void setError(ErrorInfo error) {
+            this.error = error;
+        }
+
+        public Information getInformation() {
+            return information;
+        }
+
+        public void setInformation(Information information) {
+            this.information = information;
+        }
+
+        public List<History> getHistories() {
+            return histories;
+        }
+
+        public void setHistories(List<History> histories) {
+            this.histories = histories;
+        }
+    }
+
+    // ======================================================
+    // ===================== HISTORY =======================
+    // ======================================================
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class History {
+
+        private String spanishDescription;
+        private String eventDateTime;
+        private String warehouseName;
+
+        public String getSpanishDescription() {
+            return spanishDescription;
+        }
+
+        public void setSpanishDescription(String spanishDescription) {
+            this.spanishDescription = spanishDescription;
+        }
+
+        public String getEventDateTime() {
+            return eventDateTime;
+        }
+
+        public void setEventDateTime(String eventDateTime) {
+            this.eventDateTime = eventDateTime;
+        }
+
+        public String getWarehouseName() {
+            return warehouseName;
+        }
+
+        public void setWarehouseName(String warehouseName) {
+            this.warehouseName = warehouseName;
+        }
+    }
+
+    // ======================================================
+    // ==================== ERROR INFO ======================
+    // ======================================================
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class ErrorInfo {
+
+        private String code;
+        private String description;
+
+        public String getCode() {
+            return code;
+        }
+
+        public void setCode(String code) {
+            this.code = code;
+        }
+
+        public String getDescription() {
+            return description;
+        }
+
+        public void setDescription(String description) {
+            this.description = description;
         }
     }
 }

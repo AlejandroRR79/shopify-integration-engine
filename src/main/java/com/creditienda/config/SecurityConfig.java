@@ -23,7 +23,7 @@ public class SecurityConfig {
                                 // ⬅⬅⬅ AGREGAR ESTO JUSTO AQUÍ
                                 .securityContext(context -> context.requireExplicitSave(false))
 
-                                .csrf().disable()
+                                .csrf(csrf -> csrf.disable())
                                 .authorizeHttpRequests(auth -> auth
                                                 .requestMatchers(
                                                                 "/auth/**",
@@ -49,8 +49,12 @@ public class SecurityConfig {
                                                 .requestMatchers("/api/estafeta/**").authenticated()
                                                 .anyRequest().denyAll())
                                 .addFilterBefore(accessTokenFilter, UsernamePasswordAuthenticationFilter.class)
-                                .httpBasic().disable()
-                                .formLogin().disable();
+
+                                // 🔧 ANTES: .httpBasic().disable()
+                                .httpBasic(httpBasic -> httpBasic.disable())
+
+                                // 🔧 ANTES: .formLogin().disable()
+                                .formLogin(formLogin -> formLogin.disable());
 
                 return http.build();
         }
