@@ -14,6 +14,7 @@ import com.creditienda.dto.delivery.B2BSeguimientoEntregaResponseDTO;
 import com.creditienda.model.EstafetaResponse;
 import com.creditienda.service.EstafetHistorialClient;
 import com.creditienda.service.b2b.B2BDeliveryClient;
+import com.creditienda.service.notificacion.NotificacionService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Service
@@ -28,15 +29,23 @@ public class DeliveryTrackingService {
     @Value("${b2b.seguimiento.estatus}")
     private List<String> estatusSeguimiento;
 
+    private final NotificacionService notificacionService;
+
     public DeliveryTrackingService(
             B2BDeliveryClient b2bClient,
-            EstafetHistorialClient estafetaClient) {
+            EstafetHistorialClient estafetaClient,
+            NotificacionService notificacionService) {
 
         this.b2bClient = b2bClient;
         this.estafetaClient = estafetaClient;
+        this.notificacionService = notificacionService;
     }
 
     public void sincronizarEstatusEntregas() {
+
+        List<String> sinOC = new ArrayList<>();
+        List<String> actualizadas = new ArrayList<>();
+        List<String> errores = new ArrayList<>();
 
         log.info("🚀 Inicia sincronización de entregas");
 
@@ -45,31 +54,47 @@ public class DeliveryTrackingService {
             List<B2BSeguimientoEntregaOrdenDTO> ordenes = new ArrayList<>();
 
             for (String estatus : estatusSeguimiento) {
-                ordenes.addAll(
-                        consultarOrdenesPorEstatus(estatus));
+                ordenes.addAll(consultarOrdenesPorEstatus(estatus, errores));
+
             }
 
             if (ordenes.isEmpty()) {
                 log.warn("⚠ B2B no regresó órdenes para seguimientoEntrega");
+                sinOC.add("No se encontraron OCs para los estatus configurados: " + estatusSeguimiento);
+                enviarResumenCorreo(sinOC, actualizadas, errores);
                 return;
             }
 
-            log.info("iniciando prodcesar ordenes");
+            log.info("Iniciando procesamiento de órdenes");
+
             for (B2BSeguimientoEntregaOrdenDTO orden : ordenes) {
-                procesarOrden(orden);
+                procesarOrden(orden, actualizadas, errores);
             }
+            enviarResumenCorreo(sinOC, actualizadas, errores);
 
         } catch (Exception e) {
             log.error("❌ Error general en sincronización", e);
         }
     }
 
-    private List<B2BSeguimientoEntregaOrdenDTO> consultarOrdenesPorEstatus(String cveEstatusOdc) {
+    private List<B2BSeguimientoEntregaOrdenDTO> consultarOrdenesPorEstatus(
+            String cveEstatusOdc,
+            List<String> errores) {
 
         try {
             log.info("🔎 Consultando OCs | cveEstatusOdc={}", cveEstatusOdc);
 
             String json = b2bClient.seguimientoEntrega(cveEstatusOdc);
+
+            if (json == null || json.isBlank()) {
+                log.error("❌ B2B no respondió (timeout o error) | estatus={}", cveEstatusOdc);
+
+                errores.add(
+                        "B2B SIN RESPUESTA | estatus=" + cveEstatusOdc +
+                                " | posible timeout o error de red");
+
+                return List.of();
+            }
 
             B2BSeguimientoEntregaResponseDTO response = mapper.readValue(json, B2BSeguimientoEntregaResponseDTO.class);
 
@@ -82,11 +107,19 @@ public class DeliveryTrackingService {
 
         } catch (Exception e) {
             log.error("❌ Error consultando OCs | cveEstatusOdc={}", cveEstatusOdc, e);
+
+            errores.add(
+                    "Error consultando B2B | estatus=" + cveEstatusOdc +
+                            " | " + e.getMessage());
+
             return List.of(); // 🔥 no romper flujo
         }
     }
 
-    private void procesarOrden(B2BSeguimientoEntregaOrdenDTO orden) {
+    private void procesarOrden(
+            B2BSeguimientoEntregaOrdenDTO orden,
+            List<String> actualizadas,
+            List<String> errores) {
 
         log.debug("➡ Procesando orden={}", orden);
 
@@ -101,6 +134,7 @@ public class DeliveryTrackingService {
 
             if (response.getItems() == null || response.getItems().isEmpty()) {
                 log.warn("⚠ Sin items Estafeta | guia={}", orden.getWaybill());
+                errores.add("Guía sin registro Estafeta: " + orden.getWaybill());
                 return;
             }
 
@@ -113,12 +147,19 @@ public class DeliveryTrackingService {
                         orden.getWaybill(),
                         item.getError().getCode(),
                         item.getError().getDescription());
+                errores.add(
+                        "Error Estafeta | OC=" + orden.getOrderNumber() +
+                                " | guía=" + orden.getWaybill() +
+                                " | " + item.getError().getDescription());
                 return; // 🔥 NO mandar a B2B
             }
             EstafetaResponse.Status status = item.getStatusCurrent();
 
             if (status == null) {
                 log.warn("⚠ Sin statusCurrent | guia={}", orden.getWaybill());
+                errores.add(
+                        "Sin statusCurrent | OC=" + orden.getOrderNumber() +
+                                " | guía=" + orden.getWaybill());
                 return;
             }
 
@@ -133,6 +174,19 @@ public class DeliveryTrackingService {
                 return;
             }
 
+            // 4️⃣ Mapear → B2B
+            B2BActualizarEstatusEntregaDTO update = new B2BActualizarEstatusEntregaDTO();
+
+            // 🔥 CAMBIOS CLAVE
+            update.setReferenceNumber(orden.getReferenceNumber()); // referenceNumber
+            if (item.getInformation() == null) {
+                log.warn("⚠ Estafeta sin information | guia={}", orden.getWaybill());
+                errores.add(
+                        "Estafeta sin information | OC=" + orden.getOrderNumber() +
+                                " | guía=" + orden.getWaybill());
+                return;
+            }
+
             // 🔎 LOG CLAVE
             log.info(
                     "🧾 Estafeta | waybill={} | trackingEstafeta={} | code={} | desc={} | fecha={}",
@@ -142,12 +196,7 @@ public class DeliveryTrackingService {
                     status.getSpanishName(),
                     status.getLocalDateTime());
 
-            // 4️⃣ Mapear → B2B
-            B2BActualizarEstatusEntregaDTO update = new B2BActualizarEstatusEntregaDTO();
-
-            // 🔥 CAMBIOS CLAVE
-            update.setReferenceNumber(orden.getReferenceNumber()); // referenceNumber
-            update.setTrackingCode(item.getInformation().getTrackingCode()); // trackingCode
+            update.setTrackingCode(item.getInformation().getTrackingCode());
             update.setOrderNumber(orden.getOrderNumber()); // orderNumber
 
             update.setCodigoEntrega(status.getCode());
@@ -178,37 +227,51 @@ public class DeliveryTrackingService {
             // 5️⃣ B2B → actualizar
             b2bClient.actualizarEstatusDelivery(update);
 
+            actualizadas.add(
+                    "OC=" + orden.getOrderNumber() +
+                            " | guía=" + orden.getWaybill() +
+                            " | estatus=" + status.getSpanishName());
+
         } catch (Exception e) {
             log.error("❌ Error procesando orden={}", orden.getOrderNumber(), e);
+            errores.add(
+                    "Excepción | OC=" + orden.getOrderNumber() +
+                            " | " + e.getMessage());
         }
     }
 
-    private B2BSeguimientoEntregaResponseDTO obtenerGuias() {
+    private void enviarResumenCorreo(
+            List<String> sinOC,
+            List<String> actualizadas,
+            List<String> errores) {
 
-        log.warn("🧪 Usando MOCK de seguimientoEntrega");
+        StringBuilder sb = new StringBuilder();
 
-        List<B2BSeguimientoEntregaOrdenDTO> ordenes = List.of(
-                crearOrdenMock("2015410173997631417025"),
-                crearOrdenMock("4055911250502700000019"),
-                crearOrdenMock("1234567890123456789012"));
+        sb.append("📦 RESUMEN SINCRONIZACIÓN ESTAFETA → B2B\n\n");
 
-        B2BSeguimientoEntregaResponseDTO response = new B2BSeguimientoEntregaResponseDTO();
+        if (sinOC.isEmpty() && actualizadas.isEmpty() && errores.isEmpty()) {
+            log.info("ℹ No hubo cambios ni errores, no se envía correo");
+            return;
+        }
 
-        response.setIsSuccess(true);
-        response.setData(ordenes);
+        if (!sinOC.isEmpty()) {
+            sb.append("❌ SIN OC:\n");
+            sinOC.forEach(o -> sb.append(" - ").append(o).append("\n"));
+            sb.append("\n");
+        }
 
-        return response;
-    }
+        if (!actualizadas.isEmpty()) {
+            sb.append("✅ ACTUALIZADAS:\n");
+            actualizadas.forEach(o -> sb.append(" - ").append(o).append("\n"));
+            sb.append("\n");
+        }
 
-    private B2BSeguimientoEntregaOrdenDTO crearOrdenMock(String guia) {
+        if (!errores.isEmpty()) {
+            sb.append("⚠ ERRORES:\n");
+            errores.forEach(o -> sb.append(" - ").append(o).append("\n"));
+        }
 
-        B2BSeguimientoEntregaOrdenDTO orden = new B2BSeguimientoEntregaOrdenDTO();
-
-        orden.setOrderNumber("OC-MOCK-" + guia.substring(0, 6));
-        orden.setReferenceNumber("REF-MOCK-" + guia.substring(0, 6));
-        orden.setTrackingCode(guia);
-
-        return orden;
+        notificacionService.enviarResumen(sb.toString());
     }
 
 }

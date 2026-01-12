@@ -2,11 +2,12 @@ package com.creditienda.service.b2b;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -14,6 +15,8 @@ import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 
 import com.creditienda.dto.delivery.B2BActualizarEstatusEntregaDTO;
+import com.creditienda.dto.delivery.B2BActualizarEstatusResponseDTO;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jakarta.annotation.PostConstruct;
 
@@ -41,8 +44,14 @@ public class B2BDeliveryClient {
     @Value("${b2b.delivery.endpoint.actualizar}")
     private String actualizarEndpoint;
 
-    @Autowired
-    private RestTemplate restTemplate;
+    private final RestTemplate restTemplate;
+    private final ObjectMapper mapper;
+
+    // ✅ CONSTRUCTOR CORRECTO
+    public B2BDeliveryClient(RestTemplate restTemplate, ObjectMapper mapper) {
+        this.restTemplate = restTemplate;
+        this.mapper = mapper;
+    }
 
     @PostConstruct
     public void logConfig() {
@@ -62,7 +71,13 @@ public class B2BDeliveryClient {
         log.debug("   URL={}", url);
 
         HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+        // 🔧 CORREGIDO: multipart → form-urlencoded (IIS compatible)
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+        // 🔧 CORREGIDO: headers explícitos (evita 400 IIS)
+        headers.setAccept(MediaType.parseMediaTypes("application/json"));
+        headers.set("User-Agent", "Mozilla/5.0");
+        headers.set("Connection", "close");
 
         MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
         form.add("usuario", usuario);
@@ -71,14 +86,20 @@ public class B2BDeliveryClient {
 
         log.debug("📤 Payload seguimientoEntrega={}", form);
 
+        HttpEntity<MultiValueMap<String, String>> entity = new HttpEntity<>(form, headers);
+
         try {
-            String response = restTemplate.postForObject(
+
+            // 🔧 CORREGIDO: postForObject → exchange
+            ResponseEntity<String> response = restTemplate.exchange(
                     url,
-                    new HttpEntity<>(form, headers),
+                    HttpMethod.POST,
+                    entity,
                     String.class);
 
-            log.debug("📥 Respuesta seguimientoEntrega={}", response);
-            return response;
+            // 🔧 CORREGIDO: regresar SOLO el body
+            log.debug("📥 Respuesta seguimientoEntrega={}", response.getBody());
+            return response.getBody();
 
         } catch (Exception e) {
             log.error("❌ Error llamando seguimientoEntrega", e);
@@ -96,7 +117,14 @@ public class B2BDeliveryClient {
         log.info("   DTO={}", dto);
 
         HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+
+        // 🔧 CORREGIDO: multipart → form-urlencoded (IIS compatible)
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+        // 🔧 CORREGIDO: headers explícitos (evita 400 IIS)
+        headers.setAccept(MediaType.parseMediaTypes("application/json"));
+        headers.set("User-Agent", "Mozilla/5.0");
+        headers.set("Connection", "close");
 
         MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
         form.add("usuario", usuario);
@@ -109,38 +137,64 @@ public class B2BDeliveryClient {
 
         log.info("📤 Payload actualizarEstatusDelivery={}", form);
 
+        // 🔧 CORREGIDO: HttpEntity explícito (ANTES no estaba controlado)
+        HttpEntity<MultiValueMap<String, String>> entity = new HttpEntity<>(form, headers);
+
         try {
 
-            String response = restTemplate.postForObject(
+            // 🔧 CORREGIDO: postForObject → exchange
+            ResponseEntity<String> response = restTemplate.exchange(
                     url,
-                    new HttpEntity<>(form, headers),
+                    HttpMethod.POST,
+                    entity,
                     String.class);
+
+            String responseJson = response.getBody();
 
             log.debug(
                     "📥 Respuesta B2B actualizarEstatusDelivery | order={} | response={}",
                     dto.getOrderNumber(),
-                    response);
+                    responseJson);
+
+            // ✅ Parseo correcto
+            B2BActualizarEstatusResponseDTO responseDto = mapper.readValue(responseJson,
+                    B2BActualizarEstatusResponseDTO.class);
+
+            // ✅ Validación funcional
+            if (!Boolean.TRUE.equals(responseDto.getIsSuccess())) {
+                throw new IllegalStateException(
+                        "B2B actualizarEstatusDelivery falló: " + responseDto.getError());
+            }
 
         } catch (HttpStatusCodeException e) {
 
-            // ❌ Error HTTP controlado (400 / 500)
             log.error(
                     "❌ Error HTTP B2B | order={} | status={} | body={}",
                     dto.getOrderNumber(),
                     e.getStatusCode(),
-                    e.getResponseBodyAsString());
+                    e.getResponseBodyAsString(),
+                    e);
 
-            // 🔥 NO relanzar → el job continúa
+            throw e;
 
-        } catch (Exception e) {
+        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
 
-            // ❌ Error técnico (timeout, conexión, etc.)
             log.error(
-                    "❌ Error técnico B2B | order={}",
+                    "❌ Error parseando respuesta B2B | order={} | response no válido",
                     dto.getOrderNumber(),
                     e);
 
-            // 🔥 NO relanzar → el job continúa
+            throw new IllegalStateException("Respuesta B2B inválida", e);
+
+        } catch (Exception e) {
+
+            log.error(
+                    "❌ Error B2B actualizarEstatusDelivery | order={}",
+                    dto.getOrderNumber(),
+                    e);
+
+            throw e;
         }
     }
+
 }

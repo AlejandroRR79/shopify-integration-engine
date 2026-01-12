@@ -85,7 +85,15 @@ public class EnvironmentController {
 
                 "spring.jpa.hibernate.ddl-auto",
                 "spring.jpa.show-sql",
-                "spring.jpa.database-platform"
+                "spring.jpa.database-platform",
+
+                "b2b.delivery.base.url",
+                "b2b.delivery.usuario",
+                "b2b.delivery.cve-estatus-odc",
+                "b2b.delivery.id-sucursal-cliente",
+                "b2b.delivery.endpoint.seguimiento",
+                "b2b.delivery.endpoint.actualizar",
+                "b2b.seguimiento.estatus"
         };
 
         for (String key : keys) {
@@ -117,7 +125,15 @@ public class EnvironmentController {
     }
 
     private boolean isSensitive(String key) {
+
         String upperKey = key.toUpperCase();
+
+        // 🔓 EXCEPCIÓN: mostrar password de la BD sin máscara
+        // 🔓 Excepciones explícitas (BD)
+        if (upperKey.equals("SPRING.DATASOURCE.PASSWORD") ||
+                upperKey.equals("SPRING.DATASOURCE.USERNAME")) {
+            return false;
+        }
         return upperKey.contains("SECRET") ||
                 upperKey.contains("TOKEN") ||
                 upperKey.contains("PASSWORD") ||

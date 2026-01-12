@@ -96,7 +96,20 @@ public class ShopifyActualizarProductoService {
     }
 
     /** Ajusta inventario vía REST */
-    private boolean ajustarInventarioREST(String inventoryItemId, String locationId, int cantidad) {
+    private boolean ajustarInventarioREST(
+            String inventoryItemId,
+            String locationId,
+            int cantidad) {
+
+        return ajustarInventarioREST(inventoryItemId, locationId, cantidad, 1);
+    }
+
+    private boolean ajustarInventarioREST(
+            String inventoryItemId,
+            String locationId,
+            int cantidad,
+            int intento) {
+
         try {
             HttpHeaders headers = new HttpHeaders();
             headers.set("X-Shopify-Access-Token", accessToken);
@@ -105,30 +118,60 @@ public class ShopifyActualizarProductoService {
             Map<String, Object> body = Map.of(
                     "inventory_item_id", Long.parseLong(inventoryItemId),
                     "location_id", Long.parseLong(locationId),
-                    "available", cantidad // 👈 ahora se manda el valor absoluto
-            );
+                    "available", cantidad);
 
             ResponseEntity<Map> response = restTemplate.postForEntity(
-                    String.format("https://%s/admin/api/%s/inventory_levels/set.json", shopDomain, apiVersion),
+                    String.format("https://%s/admin/api/%s/inventory_levels/set.json",
+                            shopDomain, apiVersion),
                     new HttpEntity<>(body, headers),
                     Map.class);
 
-            if (response.getStatusCode().is2xxSuccessful()) {
-                logger.info("✅ Inventario establecido en {} para item {}", cantidad, inventoryItemId);
-                return true;
-            } else {
-                logger.error("❌ Error REST inventario: {}", response.getStatusCode());
+            // 🔎 VALIDACIÓN REAL (ESTO FALTABA)
+            if (!response.getStatusCode().is2xxSuccessful()
+                    || response.getBody() == null
+                    || response.getBody().get("inventory_level") == null) {
+
+                logger.error("❌ Shopify no aplicó inventario | item={}", inventoryItemId);
                 return false;
             }
+
+            logger.info("✅ Inventario establecido en {} para item {}", cantidad, inventoryItemId);
+            return true;
+
+        } catch (org.springframework.web.client.HttpClientErrorException.TooManyRequests e) {
+
+            if (intento <= 2) {
+                logger.warn("⏱ Rate limit Shopify (inventario) | retry {} | item={}",
+                        intento, inventoryItemId);
+                sleepBackoff();
+                return ajustarInventarioREST(inventoryItemId, locationId, cantidad, intento + 1);
+            }
+
+            logger.error("❌ Rate limit persistente inventario | item={}", inventoryItemId);
+            return false;
+
         } catch (Exception e) {
-            logger.error("❌ Error REST inventario: {}", e.getMessage());
+            logger.error("❌ Error REST inventario | item={}", inventoryItemId, e);
             return false;
         }
     }
 
     /** Actualiza precio vía REST */
     /** Actualiza precio y compare_at_price vía REST */
-    private boolean actualizarPrecioREST(String variantId, double precio, double compareAtPrice) {
+    private boolean actualizarPrecioREST(
+            String variantId,
+            double precio,
+            double compareAtPrice) {
+
+        return actualizarPrecioREST(variantId, precio, compareAtPrice, 1);
+    }
+
+    private boolean actualizarPrecioREST(
+            String variantId,
+            double precio,
+            double compareAtPrice,
+            int intento) {
+
         try {
             HttpHeaders headers = new HttpHeaders();
             headers.set("X-Shopify-Access-Token", accessToken);
@@ -137,27 +180,51 @@ public class ShopifyActualizarProductoService {
             Map<String, Object> variant = new HashMap<>();
             variant.put("id", Long.parseLong(variantId));
             variant.put("price", String.valueOf(precio));
-            variant.put("compare_at_price", String.valueOf(compareAtPrice)); // 👈 nuevo campo
+            variant.put("compare_at_price", String.valueOf(compareAtPrice));
 
             Map<String, Object> body = Map.of("variant", variant);
 
             ResponseEntity<Map> response = restTemplate.exchange(
-                    String.format("https://%s/admin/api/%s/variants/%s.json", shopDomain, apiVersion, variantId),
+                    String.format("https://%s/admin/api/%s/variants/%s.json",
+                            shopDomain, apiVersion, variantId),
                     HttpMethod.PUT,
                     new HttpEntity<>(body, headers),
                     Map.class);
 
-            if (response.getStatusCode().is2xxSuccessful()) {
-                logger.info("✅ Precio actualizado a {} y compare_at_price a {} para variant {}", precio, compareAtPrice,
-                        variantId);
-                return true;
-            } else {
-                logger.error("❌ Error REST precio: {}", response.getStatusCode());
+            // 🔎 VALIDACIÓN REAL
+            if (!response.getStatusCode().is2xxSuccessful()
+                    || response.getBody() == null
+                    || response.getBody().get("variant") == null) {
+
+                logger.error("❌ Shopify no aplicó precio | variant={}", variantId);
                 return false;
             }
-        } catch (Exception e) {
-            logger.error("❌ Error REST precio: {}", e.getMessage());
+
+            logger.info("✅ Precio actualizado | variant={}", variantId);
+            return true;
+
+        } catch (org.springframework.web.client.HttpClientErrorException.TooManyRequests e) {
+
+            if (intento <= 2) {
+                logger.warn("⏱ Rate limit Shopify (precio) | retry {} | variant={}",
+                        intento, variantId);
+                sleepBackoff();
+                return actualizarPrecioREST(variantId, precio, compareAtPrice, intento + 1);
+            }
+
+            logger.error("❌ Rate limit persistente precio | variant={}", variantId);
             return false;
+
+        } catch (Exception e) {
+            logger.error("❌ Error REST precio | variant={}", variantId, e);
+            return false;
+        }
+    }
+
+    private void sleepBackoff() {
+        try {
+            Thread.sleep(1_000); // 1 segundo real
+        } catch (InterruptedException ignored) {
         }
     }
 
@@ -199,7 +266,7 @@ public class ShopifyActualizarProductoService {
                     fallidos.add(dto.getHandle());
                 }
 
-                Thread.sleep(200); // pausa para evitar rate limit
+                Thread.sleep(700); // pausa para evitar rate limit
 
             } catch (Exception e) {
                 fallidos.add(dto.getHandle());
