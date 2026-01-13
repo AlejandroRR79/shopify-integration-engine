@@ -4,10 +4,7 @@ import java.math.BigDecimal;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
-@JsonIgnoreProperties({
-        "rawData",
-        "destinationAddress"
-})
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class B2BSeguimientoEntregaOrdenDTO {
 
     // 🔹 Identificadores

@@ -32,6 +32,12 @@ public class B2BTokenService {
     @Value("${b2b.oc.auth.password}")
     private String ocPassword;
 
+    private final RestTemplate restTemplate;
+
+    public B2BTokenService(RestTemplate restTemplate) {
+        this.restTemplate = restTemplate;
+    }
+
     public String obtenerTokenOC() {
         logger.info("🔐 Iniciando solicitud de token B2B para registro de OC");
         logger.info("🔐 URL: {}", ocAuthUrl);
@@ -61,7 +67,7 @@ public class B2BTokenService {
 
         ResponseEntity<Map> response;
         try {
-            response = new RestTemplate().postForEntity(ocAuthUrl, entity, Map.class);
+            response = restTemplate.postForEntity(ocAuthUrl, entity, Map.class);
         } catch (Exception ex) {
             logger.error("❌ Error al invocar el endpoint de autenticación B2B OC", ex);
             throw new IllegalStateException("No se pudo conectar con el servicio de autenticación B2B OC", ex);

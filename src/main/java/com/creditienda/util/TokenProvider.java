@@ -66,7 +66,7 @@ public class TokenProvider {
                 if (Boolean.TRUE.equals(exito) && bodyMap.get("data") instanceof Map) {
                     Map<String, Object> data = (Map<String, Object>) bodyMap.get("data");
                     String token = (String) data.get("token");
-                    logger.info("🔑 Token recibido: {}", token);
+                    logger.info("🔑 Token recibido: ");
                     return token;
                 } else {
                     String mensaje = (String) bodyMap.get("mensajeError");

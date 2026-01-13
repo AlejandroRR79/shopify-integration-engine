@@ -23,8 +23,11 @@ public class B2BService {
 
     private final NotificacionService notificacionService;
 
-    public B2BService(NotificacionService notificacionService) {
+    private final RestTemplate restTemplate;
+
+    public B2BService(NotificacionService notificacionService, RestTemplate restTemplate) {
         this.notificacionService = notificacionService;
+        this.restTemplate = restTemplate;
     }
 
     public boolean enviarOrden(String rawBody, String token, boolean enviarNotificacion) {
@@ -35,7 +38,6 @@ public class B2BService {
         headers.setBearerAuth(token);
 
         HttpEntity<String> entity = new HttpEntity<>(rawBody, headers);
-        RestTemplate restTemplate = new RestTemplate();
 
         try {
             ResponseEntity<String> response = restTemplate.postForEntity(orderUrl, entity, String.class);

@@ -26,6 +26,13 @@ import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.Marshaller;
 
 @Service
+@Deprecated
+/**
+ * @deprecated Este cliente de timbrado está marcado como obsoleto y no se
+ *             utiliza por el momento.
+ *             Favor de usar la implementación actualizada o reactivar
+ *             `TimbradoJsonDirectService` si es necesario.
+ */
 public class TimbradoClient {
 
     private static final Logger logger = LoggerFactory.getLogger(TimbradoClient.class);
@@ -41,6 +48,8 @@ public class TimbradoClient {
 
     public TimbradoClient(TokenProvider tokenProvider) {
         this.tokenProvider = tokenProvider;
+        logger.warn(
+                "TimbradoClient marcado como @Deprecated: actualmente no se usa y puede ser eliminado en el futuro.");
     }
 
     public String timbrarJson(Documento doc) throws Exception {
@@ -59,7 +68,7 @@ public class TimbradoClient {
             throw new IllegalStateException("❌ JSON generado está vacío");
         }
 
-        logger.info("🔐 Token obtenido: {}", token);
+        logger.info("🔐 Token obtenido");
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.parseMediaType("application/json;charset=UTF-8"));

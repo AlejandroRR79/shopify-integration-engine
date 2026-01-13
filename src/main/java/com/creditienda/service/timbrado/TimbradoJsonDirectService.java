@@ -40,7 +40,7 @@ public class TimbradoJsonDirectService {
         HttpEntity<String> entity = new HttpEntity<>(jsonCrudo, headers);
 
         logger.info("📤 Enviando JSON directo al PAC:\n{}", jsonCrudo);
-        logger.info("🔐 Token usado: {}", token);
+        logger.info("🔐 Token usado: ");
 
         try {
             ResponseEntity<String> response = restTemplate.exchange(

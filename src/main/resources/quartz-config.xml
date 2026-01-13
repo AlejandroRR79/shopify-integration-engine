@@ -15,7 +15,11 @@
     </bean>
     <bean id="triggerEstafeta" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
         <property name="jobDetail" ref="jobEstafeta" />
+
         <property name="cronExpression" value="0 0 0/2 * * ?" />
+        <!--
+        <property name="cronExpression" value="0 0/1 * * * ?" />
+        -->
         <property name="misfireInstructionName" value="MISFIRE_INSTRUCTION_DO_NOTHING" />
     </bean>
 
@@ -35,6 +39,8 @@
 
     <!-- Scheduler con JobFactory -->
     <bean class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
+        <!-- Graceful shutdown: esperar a que terminen los jobs en shutdown -->
+        <property name="waitForJobsToCompleteOnShutdown" value="true" />
         <property name="jobFactory" ref="jobFactory" />
         <property name="triggers">
             <list>
@@ -44,6 +50,19 @@
                 <ref bean="triggerEstafeta" />
 
             </list>
+        </property>
+        <!-- Ajustes básicos de Quartz (thread pool) -->
+        <property name="quartzProperties">
+            <props>
+                <!-- Ajusta según carga; 5 es un punto de partida razonable -->
+                <prop key="org.quartz.threadPool.threadCount">5</prop>
+
+                <!-- Opcional: activar si vas a correr en cluster (requiere DB JobStore) -->
+                <!--
+            <prop key="org.quartz.jobStore.class">org.quartz.impl.jdbcjobstore.JobStoreTX</prop>
+            <prop key="org.quartz.jobStore.isClustered">true</prop>
+            -->
+            </props>
         </property>
     </bean>
 
