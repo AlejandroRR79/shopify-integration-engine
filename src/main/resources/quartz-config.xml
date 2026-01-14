@@ -15,11 +15,11 @@
     </bean>
     <bean id="triggerEstafeta" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
         <property name="jobDetail" ref="jobEstafeta" />
-
+        <!-- 
         <property name="cronExpression" value="0 0 0/2 * * ?" />
-        <!--
-        <property name="cronExpression" value="0 0/1 * * * ?" />
         -->
+        <property name="cronExpression" value="0 0/1 * * * ?" />
+
         <property name="misfireInstructionName" value="MISFIRE_INSTRUCTION_DO_NOTHING" />
     </bean>
 
