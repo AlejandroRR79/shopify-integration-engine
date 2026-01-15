@@ -204,6 +204,25 @@ public class EstafetaResponse {
         private String localDateTime;
         private String warehouseName;
 
+        private Boolean isReasonCode; // 🔥 NUEVO
+        private String reasonCodeDescription; // 🔥 NUEVO
+
+        public Boolean getIsReasonCode() {
+            return isReasonCode;
+        }
+
+        public void setIsReasonCode(Boolean isReasonCode) {
+            this.isReasonCode = isReasonCode;
+        }
+
+        public String getReasonCodeDescription() {
+            return reasonCodeDescription;
+        }
+
+        public void setReasonCodeDescription(String reasonCodeDescription) {
+            this.reasonCodeDescription = reasonCodeDescription;
+        }
+
         public String getCode() {
             return code;
         }

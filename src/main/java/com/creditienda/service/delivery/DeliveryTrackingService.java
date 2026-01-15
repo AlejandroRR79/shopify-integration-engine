@@ -174,6 +174,21 @@ public class DeliveryTrackingService {
                 return;
             }
 
+            String reasonCodeDescription = "";
+
+            if (item.getStatus() != null && !item.getStatus().isEmpty()) {
+                log.info("Entra a obtener reasonCodeDescription");
+                // Último evento del historial
+                EstafetaResponse.Status lastStatus = item.getStatus().get(item.getStatus().size() - 1);
+
+                if (Boolean.TRUE.equals(lastStatus.getIsReasonCode())
+                        && lastStatus.getReasonCodeDescription() != null
+                        && !lastStatus.getReasonCodeDescription().isBlank()) {
+                    log.info("Ultimo estatus {}", lastStatus.getCode());
+                    reasonCodeDescription = lastStatus.getReasonCodeDescription();
+                }
+            }
+
             // 4️⃣ Mapear → B2B
             B2BActualizarEstatusEntregaDTO update = new B2BActualizarEstatusEntregaDTO();
 
@@ -189,12 +204,13 @@ public class DeliveryTrackingService {
 
             // 🔎 LOG CLAVE
             log.info(
-                    "🧾 Estafeta | waybill={} | trackingEstafeta={} | code={} | desc={} | fecha={}",
+                    "🧾 Estafeta | waybill={} | trackingEstafeta={} | code={} | desc={} | fecha={} | reasonCodeDesc={}",
                     orden.getWaybill(),
                     item.getInformation().getTrackingCode(),
                     status.getCode(),
                     status.getSpanishName(),
-                    status.getLocalDateTime());
+                    status.getLocalDateTime(),
+                    reasonCodeDescription);
 
             update.setTrackingCode(item.getInformation().getTrackingCode());
             update.setOrderNumber(orden.getOrderNumber()); // orderNumber
@@ -221,6 +237,7 @@ public class DeliveryTrackingService {
             }
 
             update.setFechaEstatus(fechaEstatus);
+            update.setReasonCodeDescription(reasonCodeDescription);
 
             log.info("➡ DTO B2B update={}", update);
 

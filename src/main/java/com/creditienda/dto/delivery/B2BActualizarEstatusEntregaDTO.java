@@ -13,6 +13,16 @@ public class B2BActualizarEstatusEntregaDTO {
     private String codigoEntrega;
     private String descripcionEntrega;
     private String fechaEstatus;
+    // 🔥 NUEVO CAMPO
+    private String reasonCodeDescription;
+
+    public String getReasonCodeDescription() {
+        return reasonCodeDescription;
+    }
+
+    public void setReasonCodeDescription(String reasonCodeDescription) {
+        this.reasonCodeDescription = reasonCodeDescription;
+    }
 
     public B2BActualizarEstatusEntregaDTO() {
         log.debug("🧩 B2BActualizarEstatusEntregaDTO creada");
@@ -81,6 +91,7 @@ public class B2BActualizarEstatusEntregaDTO {
                 ", codigoEntrega='" + codigoEntrega + '\'' +
                 ", descripcionEntrega='" + descripcionEntrega + '\'' +
                 ", fechaEstatus='" + fechaEstatus + '\'' +
+                ", reasonCodeDescription='" + reasonCodeDescription + '\'' +
                 '}';
     }
 }

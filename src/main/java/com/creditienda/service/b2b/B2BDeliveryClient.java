@@ -134,6 +134,13 @@ public class B2BDeliveryClient {
         form.add("codigoEntrega", dto.getCodigoEntrega());
         form.add("descripcionEntrega", dto.getDescripcionEntrega());
         form.add("fechaEstatus", dto.getFechaEstatus());
+        if (dto.getReasonCodeDescription() != null
+                && !dto.getReasonCodeDescription().isBlank()) {
+
+            form.add("reasonCodeDescription", dto.getReasonCodeDescription());
+        } else {
+            form.add("reasonCodeDescription", " ");
+        }
 
         log.info("📤 Payload actualizarEstatusDelivery={}", form);
 
