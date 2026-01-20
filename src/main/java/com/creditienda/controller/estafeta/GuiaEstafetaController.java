@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.creditienda.dto.estafeta.guia.WayBillRequestDTO;
 import com.creditienda.service.EstafetaGuiaClient;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -35,16 +36,16 @@ public class GuiaEstafetaController {
 
     @PostMapping("/secure")
     public ResponseEntity<String> generarGuiaProtegida(
-            @RequestBody String jsonBody,
+            @RequestBody WayBillRequestDTO request,
             Authentication authentication) {
 
-        return procesarGuia(jsonBody, authentication.getName());
+        return procesarGuia(request, authentication.getName());
     }
 
     // ===================== CORE =====================
 
     private ResponseEntity<String> procesarGuia(
-            String jsonBody,
+            WayBillRequestDTO request,
             String origenPeticion) {
 
         try {
@@ -54,16 +55,20 @@ public class GuiaEstafetaController {
                     .plusDays(effectiveDateOffsetDays)
                     .format(DateTimeFormatter.ofPattern("yyyyMMdd"));
 
-            jsonBody = jsonBody.replaceAll(
-                    "\"effectiveDate\"\\s*:\\s*\"[^\"]*\"",
-                    "\"effectiveDate\":\"" + effectiveDate + "\"");
+            if (request.getLabelDefinition() != null
+                    && request.getLabelDefinition().getServiceConfiguration() != null) {
 
-            String respuesta = estafetaGuiaClient.generarGuia(jsonBody);
+                request.getLabelDefinition()
+                        .getServiceConfiguration()
+                        .setEffectiveDate(effectiveDate);
+            }
+
+            String respuesta = estafetaGuiaClient.generarGuia(request);
 
             return ResponseEntity.ok(respuesta);
 
         } catch (Exception e) {
-            logger.error("Error al generar guía", e);
+            logger.error("Error al generar guía", e.getMessage());
 
             return ResponseEntity
                     .status(HttpStatus.BAD_REQUEST)
@@ -92,4 +97,5 @@ public class GuiaEstafetaController {
             this.message = message;
         }
     }
+
 }

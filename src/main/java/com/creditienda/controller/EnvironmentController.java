@@ -93,12 +93,12 @@ public class EnvironmentController {
                 "b2b.delivery.id-sucursal-cliente",
                 "b2b.delivery.endpoint.seguimiento",
                 "b2b.delivery.endpoint.actualizar",
-                "b2b.seguimiento.estatus"
+                "b2b.seguimiento.estatus", "estafeta.cron.exp"
         };
 
         for (String key : keys) {
             String value = environment.getProperty(key);
-            masked.put(key, maskValue(key, value));
+            masked.put(key, maskValue(key, value != null ? value : "NO_EXISTE"));
         }
 
         return ResponseEntity.ok(masked);

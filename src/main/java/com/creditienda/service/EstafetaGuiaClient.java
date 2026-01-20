@@ -1,7 +1,11 @@
 package com.creditienda.service;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -15,6 +19,11 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
+
+import com.creditienda.dto.estafeta.guia.ItemDescriptionDTO;
+import com.creditienda.dto.estafeta.guia.WayBillRequestDTO;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 
 @Service
 public class EstafetaGuiaClient {
@@ -45,6 +54,10 @@ public class EstafetaGuiaClient {
 
     @Autowired
     private RestTemplate restTemplate;
+    private static final Logger log = LoggerFactory.getLogger(EstafetaGuiaClient.class);
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     // 🔒 Cache token (thread-safe)
     private volatile String cachedToken;
@@ -53,7 +66,8 @@ public class EstafetaGuiaClient {
     // 🔒 Lock dedicado
     private final Object tokenLock = new Object();
 
-    public String generarGuia(String jsonBody) {
+    public String generarGuia(WayBillRequestDTO request) {
+
         String token = obtenerToken();
 
         HttpHeaders headers = new HttpHeaders();
@@ -63,15 +77,36 @@ public class EstafetaGuiaClient {
 
         String fullUrl = apiUrl + "?" + apiQuery;
 
-        HttpEntity<String> entity = new HttpEntity<>(jsonBody, headers);
         try {
-            ResponseEntity<String> response = restTemplate.exchange(fullUrl, HttpMethod.POST, entity, String.class);
+
+            if (request != null
+                    && request.getLabelDefinition() != null
+                    && request.getLabelDefinition().getItemDescription() != null) {
+
+                ItemDescriptionDTO item = request.getLabelDefinition().getItemDescription();
+
+                item.setHeight(normalizeIntegerDimension(item.getHeight()));
+                item.setLength(normalizeIntegerDimension(item.getLength()));
+                item.setWidth(normalizeIntegerDimension(item.getWidth()));
+            }
+
+            objectMapper.disable(SerializationFeature.INDENT_OUTPUT);
+            log.info("JSON enviado a Estafeta: {}",
+                    objectMapper.writeValueAsString(request));
+            HttpEntity<WayBillRequestDTO> entity = new HttpEntity<>(request, headers);
+            ResponseEntity<String> response = restTemplate.exchange(
+                    fullUrl,
+                    HttpMethod.POST,
+                    entity,
+                    String.class);
 
             return response.getBody();
 
         } catch (HttpClientErrorException | HttpServerErrorException e) {
-            // 🔥 SOLO el JSON real de Estafeta
+            // 🔥 DEVOLVER EL ERROR EXACTO DE ESTAFETA (SIN MODIFICAR)
             throw new RuntimeException(e.getResponseBodyAsString());
+        } catch (Exception e) {
+            throw new RuntimeException("Error al serializar JSON de Estafeta", e);
         }
     }
 
@@ -119,5 +154,15 @@ public class EstafetaGuiaClient {
 
             throw new RuntimeException("Error al obtener token de Estafeta");
         }
+    }
+
+    private String normalizeIntegerDimension(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+
+        return new BigDecimal(value)
+                .setScale(0, RoundingMode.DOWN)
+                .toPlainString();
     }
 }

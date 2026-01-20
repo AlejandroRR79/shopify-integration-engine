@@ -6,6 +6,7 @@ import org.quartz.Job;
 import org.quartz.JobExecutionContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import com.creditienda.service.delivery.DeliveryTrackingService;
@@ -22,10 +23,16 @@ public class EstafetaJob implements Job {
         this.deliveryTrackingService = deliveryTrackingService;
     }
 
+    @Value("${estafeta.cron.exp}")
+    private String cronExpression;
+
     @Override
     public void execute(JobExecutionContext context) {
         log.info("⏰ Ejecutando EstafetaJob | key={}",
                 context.getJobDetail().getKey());
+
+        log.info("🔎 estafeta.cron.exp (Spring) = {}",
+                cronExpression);
 
         deliveryTrackingService.sincronizarEstatusEntregas();
 

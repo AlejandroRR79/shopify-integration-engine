@@ -16,7 +16,7 @@
     <bean id="triggerEstafeta" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
         <property name="jobDetail" ref="jobEstafeta" />
 
-        <property name="cronExpression" value="0 0 0/3 * * ?" />
+        <property name="cronExpression" value="${estafeta.cron.exp}" />
 
         <!-- 
         <property name="cronExpression" value="0 0/1 * * * ?" />
