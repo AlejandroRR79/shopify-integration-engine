@@ -28,18 +28,18 @@ public class EstafetaJob implements Job {
 
     @Override
     public void execute(JobExecutionContext context) {
-        try{
-        log.info("⏰ Ejecutando EstafetaJob | key={}",
-                context.getJobDetail().getKey());
+        try {
+            log.info("⏰ Ejecutando EstafetaJob | key={}",
+                    context.getJobDetail().getKey());
 
-        log.info("🔎 estafeta.cron.exp (Spring) = {}",
-                cronExpression);
+            log.info("🔎 estafeta.cron.exp (Spring) = {}",
+                    cronExpression);
 
-        deliveryTrackingService.sincronizarEstatusEntregas();
+            deliveryTrackingService.sincronizarEstatusEntregas();
 
-        log.info("🏁 Finaliza EstafetaJob");
-    }catch( Exception e){
-        log.error("❌ Error en EstafetaJob: {}", e);
+            log.info("🏁 Finaliza EstafetaJob");
+        } catch (Exception e) {
+            log.error("❌ Error en EstafetaJob: {}", e);
+        }
     }
-
 }
