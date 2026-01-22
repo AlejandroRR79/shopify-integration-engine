@@ -108,7 +108,8 @@ public class ComplementoPagoBatchService {
                         clean(getCellValueAsString(row, headerIndex.get("Indicacion Carga"))));
             }
 
-            jdbcTemplate.setQueryTimeout(120);
+            JdbcTemplate localJdbc = new JdbcTemplate(jdbcTemplate.getDataSource());
+            localJdbc.setQueryTimeout(120);
 
             SimpleJdbcCall call = new SimpleJdbcCall(jdbcTemplate)
                     .withProcedureName("sp_insert_complemento_pago_batch");
