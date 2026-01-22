@@ -25,8 +25,9 @@ public class RestTemplateConfig {
 
         // Timeouts + desactivar Expect: 100-continue
         RequestConfig requestConfig = RequestConfig.custom()
-                .setConnectTimeout(Timeout.ofSeconds(10))
-                .setResponseTimeout(Timeout.ofSeconds(30))
+                .setConnectTimeout(Timeout.ofSeconds(10)) // conexión TCP
+                .setConnectionRequestTimeout(Timeout.ofSeconds(15)) // esperar conexión del pool
+                .setResponseTimeout(Timeout.ofMinutes(1)) // Estafeta lenta
                 .setExpectContinueEnabled(false)
                 .build();
 

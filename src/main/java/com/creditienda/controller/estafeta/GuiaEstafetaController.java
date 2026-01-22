@@ -47,6 +47,13 @@ public class GuiaEstafetaController {
     private ResponseEntity<String> procesarGuia(
             WayBillRequestDTO request,
             String origenPeticion) {
+        // ✅ CRÍTICO: validar request nulo
+        if (request == null) {
+            logger.warn("Request nulo al generar guía ({})", origenPeticion);
+            return ResponseEntity
+                    .badRequest()
+                    .body("Request inválido");
+        }
 
         try {
             logger.info("Generando guía ({})", origenPeticion);
@@ -68,7 +75,7 @@ public class GuiaEstafetaController {
             return ResponseEntity.ok(respuesta);
 
         } catch (Exception e) {
-            logger.error("Error al generar guía", e.getMessage());
+            logger.error("Error al generar guía", e);
 
             return ResponseEntity
                     .status(HttpStatus.BAD_REQUEST)

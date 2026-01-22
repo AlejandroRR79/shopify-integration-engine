@@ -99,6 +99,10 @@ public class EstafetaGuiaClient {
                     HttpMethod.POST,
                     entity,
                     String.class);
+            if (response.getBody() == null || response.getBody().isBlank()) {
+                throw new RuntimeException(
+                        "Respuesta vacía de Estafeta");
+            }
 
             return response.getBody();
 

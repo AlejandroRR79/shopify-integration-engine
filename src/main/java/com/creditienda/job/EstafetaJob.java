@@ -28,6 +28,7 @@ public class EstafetaJob implements Job {
 
     @Override
     public void execute(JobExecutionContext context) {
+        try{
         log.info("⏰ Ejecutando EstafetaJob | key={}",
                 context.getJobDetail().getKey());
 
@@ -37,6 +38,8 @@ public class EstafetaJob implements Job {
         deliveryTrackingService.sincronizarEstatusEntregas();
 
         log.info("🏁 Finaliza EstafetaJob");
+    }catch( Exception e){
+        log.error("❌ Error en EstafetaJob: {}", e);
     }
 
 }
