@@ -46,7 +46,7 @@ public class AccessTokenFilter extends OncePerRequestFilter {
                 Claims claims = jwtUtil.validarToken(token);
                 String username = claims.getSubject();
 
-                log.info("✅ Token válido. Usuario autenticado: {}", username);
+                // log.info("✅ Token válido. Usuario autenticado: {}", username);
 
                 UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                         username,

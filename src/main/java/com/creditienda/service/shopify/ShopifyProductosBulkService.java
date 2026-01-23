@@ -262,8 +262,8 @@ public class ShopifyProductosBulkService {
 
         // 🔎 LOG — mutation exacta (para Postman)
         log.info("📤 SHOPIFY PRICE BULK MUTATION ↓↓↓");
-        log.info("📤 SHOPIFY PRICES BULK MUTATION: {}",
-                compactarGraphQL(mutation.toString()));
+        // log.info("📤 SHOPIFY PRICES BULK MUTATION:
+        // {}",compactarGraphQL(mutation.toString()));
 
         Map<String, Object> response = ejecutarGraphQL(Map.of("query", mutation.toString()));
 

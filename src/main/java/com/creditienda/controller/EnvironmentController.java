@@ -1,8 +1,14 @@
 package com.creditienda.controller;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.env.Environment;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -13,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/shopify/secure")
 public class EnvironmentController {
 
+    private static final Logger log = LoggerFactory.getLogger(EnvironmentController.class);
     private final Environment environment;
 
     public EnvironmentController(Environment environment) {
@@ -93,12 +100,38 @@ public class EnvironmentController {
                 "b2b.delivery.id-sucursal-cliente",
                 "b2b.delivery.endpoint.seguimiento",
                 "b2b.delivery.endpoint.actualizar",
-                "b2b.seguimiento.estatus", "estafeta.cron.exp"
+                "b2b.seguimiento.estatus", "estafeta.cron.exp",
+
+                // ───────── Build info ─────────
+                "app.build.name",
+                "app.build.version",
+                "app.build.date"
         };
 
-        for (String key : keys) {
-            String value = environment.getProperty(key);
-            masked.put(key, maskValue(key, value != null ? value : "NO_EXISTE"));
+        try {
+            for (String key : keys) {
+                String value = environment.getProperty(key);
+
+                if ("app.build.date".equals(key) && value != null) {
+                    LocalDateTime utc = LocalDateTime.parse(value,
+                            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+
+                    ZonedDateTime cdmx = utc.atZone(ZoneId.of("UTC"))
+                            .withZoneSameInstant(ZoneId.of("America/Mexico_City"));
+
+                    value = cdmx.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+                }
+
+                masked.put(key, maskValue(key, value != null ? value : "NO_EXISTE"));
+            }
+        } catch (Exception e) {
+            log.error("Error al obtener la configuracion", e);
+
+            // ❌ Error explícito
+            masked.clear();
+            masked.put("status", "ERROR");
+            masked.put("message", "Error al obtener la configuración {}  " + e != null ? e.getMessage() : "");
+            masked.put("timestamp", LocalDateTime.now().toString());
         }
 
         return ResponseEntity.ok(masked);
