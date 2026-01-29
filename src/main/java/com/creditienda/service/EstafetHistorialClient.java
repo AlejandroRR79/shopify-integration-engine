@@ -70,7 +70,7 @@ public class EstafetHistorialClient {
                 }
                 """, inputType, itemsSearch);
 
-        logger.info("📤 JSON generado:\n{}", body);
+        // logger.info("📤 JSON generado:\n{}", body);
         return ejecutarConsulta(body);
     }
 

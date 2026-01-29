@@ -104,6 +104,7 @@ public class EstafetaGuiaClient {
                         "Respuesta vacía de Estafeta");
             }
 
+            log.info("Se genera guia correctamente");
             return response.getBody();
 
         } catch (HttpClientErrorException | HttpServerErrorException e) {

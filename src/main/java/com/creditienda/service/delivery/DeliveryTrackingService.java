@@ -98,7 +98,8 @@ public class DeliveryTrackingService {
 
             B2BSeguimientoEntregaResponseDTO response = mapper.readValue(json, B2BSeguimientoEntregaResponseDTO.class);
 
-            log.info("lo que recibi de b2b OC \n{}", response.getData());
+            log.info("lo que recibi de b2b OC ---------------> \n{}",
+                    (response.getData() != null ? response.getData().size() : 0));
             if (response.getData() == null) {
                 return List.of();
             }
@@ -134,7 +135,11 @@ public class DeliveryTrackingService {
 
             if (response.getItems() == null || response.getItems().isEmpty()) {
                 log.warn("⚠ Sin items Estafeta | guia={}", orden.getWaybill());
-                errores.add("Guía sin registro Estafeta: " + orden.getWaybill());
+                errores.add(
+                        "Guía sin registro Estafeta | OC=" + orden.getOrderNumber() +
+                                " | fechaSolicitud="
+                                + (orden.getFechaSolicitud() != null ? orden.getFechaSolicitud() : "") +
+                                " | waybill=" + orden.getWaybill());
                 return;
             }
 
@@ -149,7 +154,8 @@ public class DeliveryTrackingService {
                         item.getError().getDescription());
                 errores.add(
                         "Error Estafeta | OC=" + orden.getOrderNumber() +
-                                " | guía=" + orden.getWaybill() +
+                                " | fechaSolicitud=" + orden.getFechaSolicitud() +
+                                " | waybill=" + orden.getWaybill() +
                                 " | " + item.getError().getDescription());
                 return; // 🔥 NO mandar a B2B
             }
@@ -159,7 +165,8 @@ public class DeliveryTrackingService {
                 log.warn("⚠ Sin statusCurrent | guia={}", orden.getWaybill());
                 errores.add(
                         "Sin statusCurrent | OC=" + orden.getOrderNumber() +
-                                " | guía=" + orden.getWaybill());
+                                " | fechaSolicitud=" + orden.getFechaSolicitud() +
+                                " | waybill=" + orden.getWaybill());
                 return;
             }
 
@@ -198,7 +205,8 @@ public class DeliveryTrackingService {
                 log.warn("⚠ Estafeta sin information | guia={}", orden.getWaybill());
                 errores.add(
                         "Estafeta sin information | OC=" + orden.getOrderNumber() +
-                                " | guía=" + orden.getWaybill());
+                                " | fechaSolicitud=" + orden.getFechaSolicitud() +
+                                " | waybill=" + orden.getWaybill());
                 return;
             }
 
@@ -246,13 +254,16 @@ public class DeliveryTrackingService {
 
             actualizadas.add(
                     "OC=" + orden.getOrderNumber() +
-                            " | guía=" + orden.getWaybill() +
+                            " | fechaSolicitud=" + orden.getFechaSolicitud() +
+                            " | waybill=" + orden.getWaybill() +
                             " | estatus=" + status.getSpanishName());
 
         } catch (Exception e) {
             log.error("❌ Error procesando orden={}", orden.getOrderNumber(), e);
             errores.add(
                     "Excepción | OC=" + orden.getOrderNumber() +
+                            " | fechaSolicitud=" + orden.getFechaSolicitud() +
+                            " | waybill=" + orden.getWaybill() +
                             " | " + e.getMessage());
         }
     }
