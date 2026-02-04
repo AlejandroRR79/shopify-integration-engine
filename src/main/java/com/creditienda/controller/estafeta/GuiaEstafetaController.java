@@ -75,7 +75,9 @@ public class GuiaEstafetaController {
             return ResponseEntity.ok(respuesta);
 
         } catch (Exception e) {
-            logger.error("Error al generar guía", e);
+            logger.error("Error al generar guía ------------------------>>>>>>>>>>>>>>> {}", e.getMessage());
+
+            logger.error(e.getMessage());
 
             return ResponseEntity
                     .status(HttpStatus.BAD_REQUEST)

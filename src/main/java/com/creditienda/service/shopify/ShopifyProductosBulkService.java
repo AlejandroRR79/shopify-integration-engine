@@ -153,7 +153,7 @@ public class ShopifyProductosBulkService {
             List<ProductoActualizarDTO> chunk) {
 
         String handlesQuery = chunk.stream()
-                .map(p -> "handle:" + p.getHandle())
+                .map(p -> "handle:" + p.getHandle().toLowerCase())
                 .collect(Collectors.joining(" OR "));
 
         String query = """
@@ -191,7 +191,7 @@ public class ShopifyProductosBulkService {
 
         for (Map edge : edges) {
             Map node = (Map) edge.get("node");
-            String handle = node.get("handle").toString();
+            String handle = node.get("handle").toString().toLowerCase();
 
             Map variantEdge = (Map) ((List<Map>) ((Map) node.get("variants"))
                     .get("edges")).get(0);
@@ -224,7 +224,7 @@ public class ShopifyProductosBulkService {
 
         int i = 1;
         for (ProductoActualizarDTO dto : chunk) {
-            ShopifyIds s = ids.get(dto.getHandle());
+            ShopifyIds s = ids.get(dto.getHandle().toLowerCase());
             if (s == null) {
                 fallidos.add(dto.getHandle());
                 continue;
@@ -317,7 +317,7 @@ public class ShopifyProductosBulkService {
 
         int i = 1;
         for (ProductoActualizarDTO dto : chunk) {
-            ShopifyIds s = ids.get(dto.getHandle());
+            ShopifyIds s = ids.get(dto.getHandle().toLowerCase());
             if (s == null) {
                 fallidos.add(dto.getHandle());
                 continue;

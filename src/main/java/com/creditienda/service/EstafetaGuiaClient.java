@@ -6,7 +6,6 @@ import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -22,6 +21,7 @@ import org.springframework.web.client.RestTemplate;
 
 import com.creditienda.dto.estafeta.guia.ItemDescriptionDTO;
 import com.creditienda.dto.estafeta.guia.WayBillRequestDTO;
+import com.creditienda.service.notificacion.NotificacionService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
@@ -52,12 +52,12 @@ public class EstafetaGuiaClient {
     @Value("${estafeta.guia.apikey}")
     private String apiKey;
 
-    @Autowired
     private RestTemplate restTemplate;
     private static final Logger log = LoggerFactory.getLogger(EstafetaGuiaClient.class);
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper;
+
+    private final NotificacionService notificacionService;
 
     // 🔒 Cache token (thread-safe)
     private volatile String cachedToken;
@@ -66,10 +66,20 @@ public class EstafetaGuiaClient {
     // 🔒 Lock dedicado
     private final Object tokenLock = new Object();
 
+    public EstafetaGuiaClient(
+            RestTemplate restTemplate,
+            NotificacionService notificacionService) {
+
+        this.restTemplate = restTemplate;
+        this.notificacionService = notificacionService;
+        this.objectMapper = new ObjectMapper()
+                .disable(SerializationFeature.INDENT_OUTPUT);
+    }
+
     public String generarGuia(WayBillRequestDTO request) {
 
         String token = obtenerToken();
-
+        String jsonRequest = "";
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.setBearerAuth(token);
@@ -88,11 +98,11 @@ public class EstafetaGuiaClient {
                 item.setHeight(normalizeIntegerDimension(item.getHeight()));
                 item.setLength(normalizeIntegerDimension(item.getLength()));
                 item.setWidth(normalizeIntegerDimension(item.getWidth()));
+                item.setWeight(normalizeWeight(item.getWeight()));
             }
+            jsonRequest = objectMapper.writeValueAsString(request);
+            log.info("JSON enviado a Estafeta: {}", jsonRequest);
 
-            objectMapper.disable(SerializationFeature.INDENT_OUTPUT);
-            log.info("JSON enviado a Estafeta: {}",
-                    objectMapper.writeValueAsString(request));
             HttpEntity<WayBillRequestDTO> entity = new HttpEntity<>(request, headers);
             ResponseEntity<String> response = restTemplate.exchange(
                     fullUrl,
@@ -108,10 +118,31 @@ public class EstafetaGuiaClient {
             return response.getBody();
 
         } catch (HttpClientErrorException | HttpServerErrorException e) {
-            // 🔥 DEVOLVER EL ERROR EXACTO DE ESTAFETA (SIN MODIFICAR)
+            String mensaje = "❌ Error al generar guía Estafeta\n\n" +
+                    "=== REQUEST ENVIADO ===\n" +
+                    jsonRequest + "\n\n" +
+                    "=== ERROR ESTAFETA ===\n" +
+                    e.getResponseBodyAsString();
+
+            notificacionService.enviarError(mensaje);
+
             throw new RuntimeException(e.getResponseBodyAsString());
         } catch (Exception e) {
-            throw new RuntimeException("Error al serializar JSON de Estafeta", e);
+
+            try {
+                jsonRequest = objectMapper.writeValueAsString(request);
+            } catch (Exception ignored) {
+            }
+
+            String mensaje = "❌ Error interno al generar guía Estafeta\n\n" +
+                    "=== REQUEST ===\n" +
+                    jsonRequest + "\n\n" +
+                    "=== STACKTRACE ===\n" +
+                    e.getMessage();
+
+            notificacionService.enviarError(mensaje);
+
+            throw new RuntimeException("Error al generar guía Estafeta", e);
         }
     }
 
@@ -170,4 +201,15 @@ public class EstafetaGuiaClient {
                 .setScale(0, RoundingMode.DOWN)
                 .toPlainString();
     }
+
+    private String normalizeWeight(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+
+        return new BigDecimal(value)
+                .setScale(3, RoundingMode.HALF_UP)
+                .toPlainString();
+    }
+
 }
