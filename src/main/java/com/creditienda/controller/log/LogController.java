@@ -1,6 +1,10 @@
 package com.creditienda.controller.log;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.RandomAccessFile;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -15,6 +19,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import jakarta.servlet.http.HttpServletResponse;
 
 @RestController
 @RequestMapping("/api/logs")
@@ -83,4 +89,39 @@ public class LogController {
         }
         return result;
     }
+
+    @GetMapping("/download")
+    public void downloadLog(HttpServletResponse response) throws IOException {
+
+        log.info("⬇️ Entrando a /api/logs/download");
+
+        Path logFile = Paths.get("logs/creditienda.log");
+        File file = logFile.toFile();
+
+        if (!file.exists()) {
+            log.warn("❌ No se encontró creditienda.log en {}", logFile.toAbsolutePath());
+            response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+            response.getWriter().write("No se encontró creditienda.log");
+            return;
+        }
+
+        response.setContentType("application/octet-stream");
+        response.setHeader("Content-Disposition",
+                "attachment; filename=" + file.getName());
+        response.setContentLengthLong(file.length());
+
+        try (InputStream in = new FileInputStream(file);
+                OutputStream out = response.getOutputStream()) {
+
+            byte[] buffer = new byte[8192];
+            int bytesRead;
+
+            while ((bytesRead = in.read(buffer)) != -1) {
+                out.write(buffer, 0, bytesRead);
+            }
+        }
+
+        log.info("✅ Log descargado correctamente");
+    }
+
 }

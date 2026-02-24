@@ -37,6 +37,9 @@ public class ShopifyProductosBulkService {
     @Value("${shopify.access.token}")
     private String accessToken;
 
+    @Value("${shopify.bulk.chunk-size:20}")
+    private int bulkChunkSize;
+
     @Autowired
     private RestTemplate restTemplate;
 
@@ -54,7 +57,7 @@ public class ShopifyProductosBulkService {
         Set<String> fallidosPrecio = new HashSet<>();
         Set<String> fallidosInventario = new HashSet<>();
 
-        for (List<ProductoActualizarDTO> chunk : partition(productos, 20)) {
+        for (List<ProductoActualizarDTO> chunk : partition(productos, bulkChunkSize)) {
             try {
                 procesarChunk(
                         chunk,
@@ -82,6 +85,70 @@ public class ShopifyProductosBulkService {
                         fallidosPrecio.size(),
                         fallidosInventario.size()));
 
+    }
+
+    public RespuestaLoteBulkDTO actualizarPreciosBulk(
+            List<ProductoActualizarDTO> productos) {
+
+        Set<String> exitosos = new HashSet<>();
+        Set<String> fallidosPrecio = new HashSet<>();
+
+        for (List<ProductoActualizarDTO> chunk : partition(productos, bulkChunkSize)) {
+
+            try {
+                Map<String, ShopifyIds> ids = obtenerIdsPorHandle(chunk);
+                ResultadoOperacion precio = actualizarPrecios(chunk, ids);
+
+                exitosos.addAll(precio.exitosos);
+                fallidosPrecio.addAll(precio.fallidos);
+
+            } catch (Exception e) {
+                log.error("❌ Error en chunk precio", e);
+                chunk.forEach(p -> fallidosPrecio.add(p.getHandle()));
+            }
+        }
+
+        return new RespuestaLoteBulkDTO(
+                new ArrayList<>(exitosos),
+                new ArrayList<>(fallidosPrecio),
+                new ArrayList<>(),
+                productos.size(),
+                String.format("✅ %d | ❌ precio: %d",
+                        exitosos.size(),
+                        fallidosPrecio.size()));
+    }
+
+    public RespuestaLoteBulkDTO actualizarInventarioBulk(
+            List<ProductoActualizarDTO> productos) {
+
+        String locationId = obtenerLocationId();
+
+        Set<String> exitosos = new HashSet<>();
+        Set<String> fallidosInventario = new HashSet<>();
+
+        for (List<ProductoActualizarDTO> chunk : partition(productos, bulkChunkSize)) {
+
+            try {
+                Map<String, ShopifyIds> ids = obtenerIdsPorHandle(chunk);
+                ResultadoOperacion inventario = actualizarInventario(chunk, ids, locationId);
+
+                exitosos.addAll(inventario.exitosos);
+                fallidosInventario.addAll(inventario.fallidos);
+
+            } catch (Exception e) {
+                log.error("❌ Error en chunk inventario", e);
+                chunk.forEach(p -> fallidosInventario.add(p.getHandle()));
+            }
+        }
+
+        return new RespuestaLoteBulkDTO(
+                new ArrayList<>(exitosos),
+                new ArrayList<>(),
+                new ArrayList<>(fallidosInventario),
+                productos.size(),
+                String.format("✅ %d | ❌ inventario: %d",
+                        exitosos.size(),
+                        fallidosInventario.size()));
     }
 
     // ================= CORE =================
@@ -309,102 +376,110 @@ public class ShopifyProductosBulkService {
             Map<String, ShopifyIds> ids,
             String locationId) {
 
-        StringBuilder mutation = new StringBuilder("mutation {");
-
-        Map<String, String> aliasToHandle = new HashMap<>();
         Set<String> exitosos = new HashSet<>();
         Set<String> fallidos = new HashSet<>();
 
-        int i = 1;
+        List<Map<String, Object>> quantities = new ArrayList<>();
+
         for (ProductoActualizarDTO dto : chunk) {
             ShopifyIds s = ids.get(dto.getHandle().toLowerCase());
+
             if (s == null) {
                 fallidos.add(dto.getHandle());
                 continue;
             }
 
-            String alias = "i" + i++;
-            aliasToHandle.put(alias, dto.getHandle());
+            Map<String, Object> q = new HashMap<>();
+            q.put("inventoryItemId", s.inventoryItemId);
+            q.put("locationId", locationId);
+            q.put("quantity", dto.getCantidad());
 
-            mutation.append("""
-                    %s: inventorySetQuantities(input: {
-                      reason: "correction",
-                      name: "available",
-                      ignoreCompareQuantity: true,
-                      quantities: [{
-                        inventoryItemId: "%s",
-                        locationId: "%s",
-                        quantity: %d
-                      }]
-                    }) {
-                      inventoryAdjustmentGroup {
-                        reason
-                        changes { name delta }
-                      }
-                      userErrors { field message }
-                    }
-                    """.formatted(
-                    alias,
-                    s.inventoryItemId,
-                    locationId,
-                    dto.getCantidad()));
+            quantities.add(q);
         }
-        mutation.append("}");
 
-        if (aliasToHandle.isEmpty()) {
-            log.warn("⚠️ PRICE: ningún producto válido para actualizar en este chunk");
+        if (quantities.isEmpty()) {
             return new ResultadoOperacion(exitosos, fallidos);
         }
 
-        // 🔎 LOG para Postman
-        log.info("📤 SHOPIFY INVENTORY BULK MUTATION ↓↓↓");
-        log.info("📤 SHOPIFY INVENTORY BULK MUTATION: {}",
-                compactarGraphQL(mutation.toString()));
+        String mutation = """
+                mutation inventoryBulk($input: InventorySetQuantitiesInput!) {
+                  inventorySetQuantities(input: $input) {
+                    inventoryAdjustmentGroup {
+                      changes { name delta }
+                    }
+                    userErrors { field message }
+                  }
+                }
+                """;
 
-        Map<String, Object> response = ejecutarGraphQL(Map.of("query", mutation.toString()));
+        Map<String, Object> input = new HashMap<>();
+        input.put("reason", "correction");
+        input.put("name", "available");
+        input.put("ignoreCompareQuantity", true);
+        input.put("quantities", quantities);
 
-        log.info("📥 SHOPIFY INVENTORY BULK RESPONSE ↓↓↓");
-        // log.info(response.toString());
+        Map<String, Object> variables = Map.of("input", input);
 
-        // ❌ Error global GraphQL
+        Map<String, Object> body = Map.of(
+                "query", mutation,
+                "variables", variables);
+
+        log.info("📤 INVENTORY BULK OPTIMIZED ↓↓↓");
+        log.info(compactarGraphQL(mutation));
+
+        Map<String, Object> response = ejecutarGraphQL(body);
+
         if (response.containsKey("errors")) {
             log.error("❌ GRAPHQL INVENTORY ERRORS → {}", response.get("errors"));
-            aliasToHandle.values().forEach(fallidos::add);
+            chunk.forEach(p -> fallidos.add(p.getHandle()));
             return new ResultadoOperacion(exitosos, fallidos);
         }
+
         Map<String, Object> data = (Map<String, Object>) response.get("data");
+        Map<String, Object> result = (Map<String, Object>) data.get("inventorySetQuantities");
 
-        if (data == null) {
-            log.error("❌ GraphQL response sin data");
-            aliasToHandle.values().forEach(fallidos::add);
-            return new ResultadoOperacion(exitosos, fallidos);
-        }
+        List<Map<String, Object>> userErrors = (List<Map<String, Object>>) result.get("userErrors");
 
-        data.forEach((alias, value) -> {
-            Map<String, Object> r = (Map<String, Object>) value;
-            List<Map<String, Object>> errors = (List<Map<String, Object>>) r.get("userErrors");
+        if (userErrors != null && !userErrors.isEmpty()) {
 
-            Object adj = r.get("inventoryAdjustmentGroup");
-            String handle = aliasToHandle.get(alias);
+            for (Map<String, Object> error : userErrors) {
 
-            if (errors != null && !errors.isEmpty()) {
-                log.error("❌ INVENTORY ERROR → handle={} errors={}", handle, errors);
-                fallidos.add(handle);
-            } else if (adj == null) {
-                // NOOP = ya estaba correcto → ÉXITO
-                exitosos.add(handle);
-            } else {
-                exitosos.add(handle);
+                List<String> field = (List<String>) error.get("field");
+
+                if (field != null && field.size() >= 3) {
+
+                    try {
+                        int index = Integer.parseInt(field.get(2));
+                        ProductoActualizarDTO dto = chunk.get(index);
+                        fallidos.add(dto.getHandle());
+
+                        log.error("❌ INVENTORY ERROR → handle={} msg={}",
+                                dto.getHandle(),
+                                error.get("message"));
+
+                    } catch (Exception ex) {
+                        log.warn("⚠ No se pudo mapear error por índice", ex);
+                    }
+                }
             }
-        });
+
+            // Los que NO están en fallidos son exitosos
+            for (ProductoActualizarDTO dto : chunk) {
+                if (!fallidos.contains(dto.getHandle())) {
+                    exitosos.add(dto.getHandle());
+                }
+            }
+
+        } else {
+            chunk.forEach(p -> exitosos.add(p.getHandle()));
+        }
 
         return new ResultadoOperacion(exitosos, fallidos);
     }
 
     // ================= EJECUTOR GRAPHQL =================
 
-    private Map<String, Object> ejecutarGraphQL(
-            Map<String, Object> body) {
+    private Map<String, Object> ejecutarGraphQL(Map<String, Object> body) {
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
@@ -421,7 +496,41 @@ public class ShopifyProductosBulkService {
                 || response.getBody() == null) {
             throw new RuntimeException("Error GraphQL Shopify");
         }
-        return response.getBody();
+
+        Map<String, Object> responseBody = response.getBody();
+
+        // 🔥 PROTECCIÓN RATE LIMIT
+        try {
+            if (responseBody.containsKey("extensions")) {
+
+                Map<String, Object> extensions = (Map<String, Object>) responseBody.get("extensions");
+
+                Map<String, Object> cost = (Map<String, Object>) extensions.get("cost");
+
+                Map<String, Object> throttle = (Map<String, Object>) cost.get("throttleStatus");
+
+                Number available = (Number) throttle.get("currentlyAvailable");
+
+                Number restoreRate = (Number) throttle.get("restoreRate");
+
+                log.info("📊 Shopify throttle → available={}, restoreRate={}",
+                        available, restoreRate);
+
+                // 🔒 Si el bucket baja demasiado, espera
+                if (available != null && available.doubleValue() < 200) {
+
+                    long sleepMs = 400; // puedes ajustar dinámicamente si quieres
+                    log.warn("⚠ Throttle bajo ({}). Sleep {} ms",
+                            available, sleepMs);
+
+                    Thread.sleep(sleepMs);
+                }
+            }
+        } catch (Exception e) {
+            log.warn("⚠ No se pudo leer throttleStatus", e);
+        }
+
+        return responseBody;
     }
 
     // ================= HELPERS =================

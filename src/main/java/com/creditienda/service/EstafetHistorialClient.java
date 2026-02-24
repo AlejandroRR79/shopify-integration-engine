@@ -86,12 +86,6 @@ public class EstafetHistorialClient {
 
         // 🔎 LOG: URL destino
         logger.info("🌐 Estafeta URL: {}", apiUrl);
-        logger.info("RestTemplate usado={}", restTemplate.getClass());
-
-        // 🔎 LOG: Headers (sin exponer token completo)
-        logger.info("📨 Headers enviados: Content-Type={}, apikey={}",
-                headers.getContentType(),
-                apiKey);
 
         // 🔎 LOG: Body enviado
         logger.info("📤 Body enviado a Estafeta:\n{}", body);

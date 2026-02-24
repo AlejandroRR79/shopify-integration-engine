@@ -29,6 +29,21 @@ public class DeliveryTrackingService {
     @Value("${b2b.seguimiento.estatus}")
     private List<String> estatusSeguimiento;
 
+    @Value("${spring.profiles.active:default}")
+    private String activeProfile;
+
+    @Value("${b2b.delivery.base.url}")
+    private String b2bBaseUrl;
+
+    @Value("${b2b.delivery.endpoint.seguimiento}")
+    private String b2bSeguimientoEndpoint;
+
+    @Value("${b2b.delivery.endpoint.actualizar}")
+    private String b2bActualizarEndpoint;
+
+    @Value("${estafeta.api.url}")
+    private String estafetaApiUrl;
+
     private final NotificacionService notificacionService;
 
     public DeliveryTrackingService(
@@ -123,6 +138,7 @@ public class DeliveryTrackingService {
             List<String> errores) {
 
         log.debug("➡ Procesando orden={}", orden);
+        B2BActualizarEstatusEntregaDTO update = new B2BActualizarEstatusEntregaDTO();
 
         try {
             // 3️⃣ Estafeta → historial (usar WAYBILL)
@@ -196,9 +212,6 @@ public class DeliveryTrackingService {
                 }
             }
 
-            // 4️⃣ Mapear → B2B
-            B2BActualizarEstatusEntregaDTO update = new B2BActualizarEstatusEntregaDTO();
-
             // 🔥 CAMBIOS CLAVE
             update.setReferenceNumber(orden.getReferenceNumber()); // referenceNumber
             if (item.getInformation() == null) {
@@ -253,17 +266,24 @@ public class DeliveryTrackingService {
             b2bClient.actualizarEstatusDelivery(update);
 
             actualizadas.add(
-                    "OC=" + orden.getOrderNumber() +
-                            " | fechaSolicitud=" + orden.getFechaSolicitud() +
-                            " | waybill=" + orden.getWaybill() +
-                            " | estatus=" + status.getSpanishName());
+                    "OC=" + update.getOrderNumber() +
+                            " | referenceNumber=" + update.getReferenceNumber() +
+                            " | trackingCode=" + update.getTrackingCode() +
+                            " | codigoEntrega=" + update.getCodigoEntrega() +
+                            " | descripcionEntrega=" + update.getDescripcionEntrega() +
+                            " | fechaEstatus=" + update.getFechaEstatus() +
+                            " | reasonCodeDescription=" + update.getReasonCodeDescription());
 
         } catch (Exception e) {
             log.error("❌ Error procesando orden={}", orden.getOrderNumber(), e);
             errores.add(
-                    "Excepción | OC=" + orden.getOrderNumber() +
-                            " | fechaSolicitud=" + orden.getFechaSolicitud() +
+                    "Excepción | OC=" + update.getOrderNumber() +
+                            " | fechaSolicitud=" + update.getFechaEstatus() +
                             " | waybill=" + orden.getWaybill() +
+                            " | estatus=" + orden.getIdEstatusDelivery() +
+                            " | trackingCode=" + update.getTrackingCode() +
+                            " | codigoEntrega=" + update.getCodigoEntrega() +
+                            " | descripcionEntrega=" + update.getDescripcionEntrega() +
                             " | " + e.getMessage());
         }
     }
@@ -276,6 +296,18 @@ public class DeliveryTrackingService {
         StringBuilder sb = new StringBuilder();
 
         sb.append("📦 RESUMEN SINCRONIZACIÓN ESTAFETA → B2B\n\n");
+
+        sb.append("🌎 AMBIENTE: ").append(activeProfile).append("\n\n");
+
+        sb.append("🔗 URLs Consumidas:\n");
+        sb.append("B2B Seguimiento: ")
+                .append(b2bBaseUrl).append(b2bSeguimientoEndpoint).append("\n");
+
+        sb.append("B2B Actualizar: ")
+                .append(b2bBaseUrl).append(b2bActualizarEndpoint).append("\n");
+
+        sb.append("Estafeta API: ")
+                .append(estafetaApiUrl).append("\n\n");
 
         if (sinOC.isEmpty() && actualizadas.isEmpty() && errores.isEmpty()) {
             log.info("ℹ No hubo cambios ni errores, no se envía correo");

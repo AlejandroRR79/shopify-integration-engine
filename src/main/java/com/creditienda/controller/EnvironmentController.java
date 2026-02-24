@@ -102,10 +102,20 @@ public class EnvironmentController {
                 "b2b.delivery.endpoint.actualizar",
                 "b2b.seguimiento.estatus", "estafeta.cron.exp",
 
+                "estafeta.seguro.token.url",
+                "estafeta.seguro.client.id",
+                "estafeta.seguro.client.secret",
+                "estafeta.seguro.scope",
+                "estafeta.seguro.grant.type",
+                "estafeta.seguro.api.url",
+                "estafeta.seguro.apikey",
+                "shopify.bulk.chunk-size",
+
                 // ───────── Build info ─────────
                 "app.build.name",
                 "app.build.version",
                 "app.build.date"
+
         };
 
         try {
