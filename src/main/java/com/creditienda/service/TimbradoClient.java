@@ -31,7 +31,9 @@ import jakarta.xml.bind.Marshaller;
  * @deprecated Este cliente de timbrado está marcado como obsoleto y no se
  *             utiliza por el momento.
  *             Favor de usar la implementación actualizada o reactivar
- *             `TimbradoJsonDirectService` si es necesario.
+ *             `TimbradoJsonDirectService` si es necesario. ya no deberia
+ *             aparecer en el futuro, se mantiene solo por compatibilidad
+ *             temporal.
  */
 public class TimbradoClient {
 
