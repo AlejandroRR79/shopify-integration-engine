@@ -13,6 +13,7 @@ import org.springframework.core.env.Environment;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -27,7 +28,8 @@ public class EnvironmentController {
     }
 
     @GetMapping("/env")
-    public ResponseEntity<Map<String, String>> getProperties() {
+    public ResponseEntity<Map<String, String>> getProperties(
+            @RequestParam(required = false, defaultValue = "false") boolean reveal) {
         Map<String, String> masked = new LinkedHashMap<>();
 
         // Lista de claves que quieres exponer
@@ -132,7 +134,7 @@ public class EnvironmentController {
                     value = cdmx.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
                 }
 
-                masked.put(key, maskValue(key, value != null ? value : "NO_EXISTE"));
+                masked.put(key, maskValue(key, value != null ? value : "NO_EXISTE", reveal));
             }
         } catch (Exception e) {
             log.error("Error al obtener la configuracion", e);
@@ -147,9 +149,15 @@ public class EnvironmentController {
         return ResponseEntity.ok(masked);
     }
 
-    private String maskValue(String key, String value) {
+    private String maskValue(String key, String value, boolean reveal) {
+
         if (value == null)
             return null;
+
+        // 🔓 si reveal=true mostrar todo
+        if (reveal) {
+            return value;
+        }
 
         boolean sensitive = isSensitive(key);
 
