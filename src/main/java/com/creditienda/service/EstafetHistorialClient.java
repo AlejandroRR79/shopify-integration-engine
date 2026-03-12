@@ -60,7 +60,7 @@ public class EstafetHistorialClient {
 
     // 🔹 Método 2: recibe solo el número de referencia
     public String consultarHistorialNumReferencia(String itemsSearch) {
-        logger.info("🔄 Consulta con número de referencia");
+        logger.debug("🔄 Consulta con número de referencia");
 
         String body = String.format("""
                 {
@@ -84,18 +84,15 @@ public class EstafetHistorialClient {
         headers.setBearerAuth(token);
         headers.set("apikey", apiKey);
 
-        // 🔎 LOG: URL destino
-        logger.info("🌐 Estafeta URL: {}", apiUrl);
-
         // 🔎 LOG: Body enviado
-        logger.info("📤 Body enviado a Estafeta:\n{}", body);
+        logger.debug("📤 Body enviado a Estafeta:\n{}", body);
 
         HttpEntity<String> entity = new HttpEntity<>(body, headers);
 
         ResponseEntity<String> response = restTemplate.exchange(apiUrl, HttpMethod.POST, entity, String.class);
 
         // 🔎 LOG: HTTP status
-        logger.info("📥 Estafeta HTTP Status: {}", response.getStatusCode());
+        logger.debug("📥 Estafeta HTTP Status: {}", response.getStatusCode());
 
         // 🔎 LOG: Respuesta
         logger.debug("📥 Respuesta Estafeta:\n{}", response.getBody());

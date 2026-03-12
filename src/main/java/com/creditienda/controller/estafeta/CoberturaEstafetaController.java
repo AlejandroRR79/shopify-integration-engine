@@ -70,7 +70,7 @@ public class CoberturaEstafetaController {
             logger.info("Consultando cobertura ({}): origen={}, destino={}", origenPeticion, origen, destino);
 
             String respuesta = estafetaCoberturaClient.consultarCobertura(origen, destino);
-            logger.info("Respuesta de Estafeta: {}", respuesta);
+            logger.debug("Respuesta de Estafeta: {}", respuesta);
 
             return ResponseEntity.ok(respuesta);
         } catch (Exception e) {

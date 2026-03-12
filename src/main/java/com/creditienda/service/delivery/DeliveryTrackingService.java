@@ -1,5 +1,7 @@
 package com.creditienda.service.delivery;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -44,6 +46,8 @@ public class DeliveryTrackingService {
     @Value("${estafeta.api.url}")
     private String estafetaApiUrl;
 
+    DateTimeFormatter formatterEntrada = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    DateTimeFormatter formatterSalida = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     private final NotificacionService notificacionService;
 
     public DeliveryTrackingService(
@@ -163,7 +167,7 @@ public class DeliveryTrackingService {
 
             // 🚫 NUEVA VALIDACIÓN: error operacional de Estafeta
             if (item.getError() != null) {
-                log.warn(
+                log.debug(
                         "⚠ Estafeta sin información operacional | guia={} | errorCode={} | errorDesc={}",
                         orden.getWaybill(),
                         item.getError().getCode(),
@@ -190,7 +194,7 @@ public class DeliveryTrackingService {
             if (orden.getIdEstatusDelivery() != null
                     && status.getCode().equals(String.valueOf(orden.getIdEstatusDelivery()))) {
 
-                log.info(
+                log.debug(
                         "⏭ Idempotencia | Orden={} | Estatus ya aplicado={} | No se envía a B2B",
                         orden.getOrderNumber(),
                         status.getCode());
@@ -242,19 +246,35 @@ public class DeliveryTrackingService {
 
             // fechaEstatus → desde Estafeta
             String fechaEstatus;
+            String rawDate = status.getLocalDateTime();
 
-            if (status.getLocalDateTime() != null
-                    && status.getLocalDateTime().length() >= 10) {
+            try {
+                log.info("Fecha Estafeta RAW: {}", rawDate);
+                if (rawDate != null && !rawDate.isBlank()) {
 
-                fechaEstatus = status.getLocalDateTime().substring(0, 10);
+                    rawDate = rawDate.replace("T", " ");
 
-            } else {
-                fechaEstatus = java.time.LocalDate.now().toString();
+                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+                    LocalDateTime fecha = LocalDateTime.parse(rawDate, formatter);
 
-                log.warn(
-                        "⚠ localDateTime nulo | guia={} | usando fecha actual={}",
-                        orden.getWaybill(),
-                        fechaEstatus);
+                    fechaEstatus = fecha.format(formatter);
+
+                } else {
+
+                    fechaEstatus = LocalDateTime.now()
+                            .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+
+                    log.warn("⚠ localDateTime nulo | guia={} | usando fecha actual={}",
+                            orden.getWaybill(),
+                            fechaEstatus);
+                }
+
+            } catch (Exception e) {
+
+                log.warn("⚠ Error parseando fecha Estafeta: {}", rawDate);
+
+                fechaEstatus = LocalDateTime.now()
+                        .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
             }
 
             update.setFechaEstatus(fechaEstatus);
@@ -296,8 +316,6 @@ public class DeliveryTrackingService {
         StringBuilder sb = new StringBuilder();
 
         sb.append("📦 RESUMEN SINCRONIZACIÓN ESTAFETA → B2B\n\n");
-
-        sb.append("🌎 AMBIENTE: ").append(activeProfile).append("\n\n");
 
         sb.append("🔗 URLs Consumidas:\n");
         sb.append("B2B Seguimiento: ")
