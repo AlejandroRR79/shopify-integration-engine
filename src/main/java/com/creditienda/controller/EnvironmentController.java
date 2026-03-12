@@ -179,12 +179,6 @@ public class EnvironmentController {
 
         String upperKey = key.toUpperCase();
 
-        // 🔓 EXCEPCIÓN: mostrar password de la BD sin máscara
-        // 🔓 Excepciones explícitas (BD)
-        if (upperKey.equals("SPRING.DATASOURCE.PASSWORD") ||
-                upperKey.equals("SPRING.DATASOURCE.USERNAME")) {
-            return false;
-        }
         return upperKey.contains("SECRET") ||
                 upperKey.contains("TOKEN") ||
                 upperKey.contains("PASSWORD") ||
