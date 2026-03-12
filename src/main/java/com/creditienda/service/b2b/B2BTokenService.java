@@ -78,7 +78,7 @@ public class B2BTokenService {
         if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
             Object data = response.getBody().get("data");
             if (data instanceof Map<?, ?> map && map.get("accessToken") instanceof String token) {
-                logger.info("🔐 Token B2B OC obtenido correctamente: {}", token);
+                logger.info("🔐 Token B2B OC obtenido correctamente");
                 return token;
             } else {
                 logger.warn("⚠️ Estructura inesperada en respuesta B2B OC: {}", response.getBody());

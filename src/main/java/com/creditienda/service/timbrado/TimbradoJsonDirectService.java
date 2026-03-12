@@ -17,7 +17,6 @@ public class TimbradoJsonDirectService {
 
     private static final Logger logger = LoggerFactory.getLogger(TimbradoJsonDirectService.class);
 
-    private final RestTemplate restTemplate = new RestTemplate();
     private final TokenProvider tokenProvider;
 
     // @Value("${b2b.endpoint.timbre}")
@@ -26,7 +25,10 @@ public class TimbradoJsonDirectService {
     // @Value("${b2b.endpoint.descargaPdf}")
     private String urlDescargaPdf;
 
-    public TimbradoJsonDirectService(TokenProvider tokenProvider) {
+    private RestTemplate restTemplate;
+
+    public TimbradoJsonDirectService(TokenProvider tokenProvider, RestTemplate restTemplate) {
+        this.restTemplate = restTemplate;
         this.tokenProvider = tokenProvider;
     }
 

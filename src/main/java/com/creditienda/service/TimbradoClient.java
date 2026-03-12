@@ -36,7 +36,7 @@ import jakarta.xml.bind.Marshaller;
 public class TimbradoClient {
 
     private static final Logger logger = LoggerFactory.getLogger(TimbradoClient.class);
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
     private final ObjectMapper mapper = new ObjectMapper();
     private final TokenProvider tokenProvider;
 
@@ -46,8 +46,10 @@ public class TimbradoClient {
     // @Value("${b2b.endpoint.timbreIntegrador}")
     private String urlTimbreIntegrador;
 
-    public TimbradoClient(TokenProvider tokenProvider) {
+    public TimbradoClient(TokenProvider tokenProvider, RestTemplate restTemplate) {
         this.tokenProvider = tokenProvider;
+        this.restTemplate = restTemplate;
+
         logger.warn(
                 "TimbradoClient marcado como @Deprecated: actualmente no se usa y puede ser eliminado en el futuro.");
     }
@@ -59,7 +61,6 @@ public class TimbradoClient {
     public String enviar(Documento doc, String url) throws Exception {
         String token = tokenProvider.obtenerToken();
 
-        ObjectMapper mapper = new ObjectMapper();
         mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
 
         // Envolver en "documento"
@@ -76,8 +77,8 @@ public class TimbradoClient {
 
         HttpEntity<String> entity = new HttpEntity<>(json, headers);
 
-        logger.info("📤 Headers enviados:\n{}", headers);
-        logger.info("📤 JSON enviado al PAC:\n{}", json);
+        // Se evita loguear headers y JSON completos por contener datos sensibles (CFDI)
+        logger.info("📤 Preparando envío de documento al PAC");
 
         try {
             ResponseEntity<String> response = restTemplate.exchange(
@@ -85,15 +86,13 @@ public class TimbradoClient {
                     HttpMethod.POST,
                     entity,
                     String.class);
-            logger.info("📥 Respuesta del PAC:\n{}", response.getBody());
+            logger.info("📥 Respuesta recibida del PAC (body omitido en logs por sensibilidad)");
             return response.getBody();
         } catch (HttpServerErrorException e) {
-            logger.error("❌ Error 5xx del PAC:\nStatus: {}\nBody: {}\nHeaders: {}",
-                    e.getStatusCode(), e.getResponseBodyAsString(), e.getResponseHeaders());
+            logger.error("❌ Error 5xx del PAC | status={} ", e.getStatusCode());
             throw e;
         } catch (HttpClientErrorException e) {
-            logger.error("❌ Error 4xx del PAC:\nStatus: {}\nBody: {}\nHeaders: {}",
-                    e.getStatusCode(), e.getResponseBodyAsString(), e.getResponseHeaders());
+            logger.error("❌ Error 4xx del PAC | status={}", e.getStatusCode());
             throw e;
         }
     }
@@ -108,11 +107,8 @@ public class TimbradoClient {
         marshaller.marshal(doc, xmlWriter);
         String xml = xmlWriter.toString();
 
-        logger.info("📄 XML generado:\n{}", xml);
-
         // 2. Codificar en Base64
         String xmlBase64 = Base64.getEncoder().encodeToString(xml.getBytes(StandardCharsets.UTF_8));
-        logger.info("📦 XML en Base64:\n{}", xmlBase64);
 
         // 3. Preparar JSON de envío
         Map<String, String> payload = Map.of("xml", xmlBase64);
@@ -131,7 +127,7 @@ public class TimbradoClient {
                 entity,
                 String.class);
 
-        logger.info("📥 Respuesta del PAC:\n{}", response.getBody());
+        logger.info("📥 Respuesta recibida del PAC (body omitido en logs por sensibilidad)");
         return response.getBody();
     }
 }

@@ -66,11 +66,12 @@ public class ShopifyProcesarOrderService {
         headers.setContentType(MediaType.APPLICATION_JSON);
         HttpEntity<Void> entity = new HttpEntity<>(headers);
 
-        restTemplate.getMessageConverters().removeIf(c -> c instanceof StringHttpMessageConverter);
-        restTemplate.getMessageConverters().add(0, new StringHttpMessageConverter(StandardCharsets.UTF_8));
+        RestTemplate localTemplate = new RestTemplate(restTemplate.getRequestFactory());
+        localTemplate.getMessageConverters().removeIf(c -> c instanceof StringHttpMessageConverter);
+        localTemplate.getMessageConverters().add(0, new StringHttpMessageConverter(StandardCharsets.UTF_8));
 
         try {
-            ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
+            ResponseEntity<String> response = localTemplate.exchange(url, HttpMethod.GET, entity, String.class);
             String jsonCrudo = response.getBody();
 
             ObjectMapper mapper = new ObjectMapper();
@@ -209,11 +210,12 @@ public class ShopifyProcesarOrderService {
         headers.setContentType(MediaType.APPLICATION_JSON);
         HttpEntity<Void> entity = new HttpEntity<>(headers);
 
-        restTemplate.getMessageConverters().removeIf(c -> c instanceof StringHttpMessageConverter);
-        restTemplate.getMessageConverters().add(0, new StringHttpMessageConverter(StandardCharsets.UTF_8));
+        RestTemplate localTemplate = new RestTemplate(restTemplate.getRequestFactory());
+        localTemplate.getMessageConverters().removeIf(c -> c instanceof StringHttpMessageConverter);
+        localTemplate.getMessageConverters().add(0, new StringHttpMessageConverter(StandardCharsets.UTF_8));
 
         try {
-            ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
+            ResponseEntity<String> response = localTemplate.exchange(url, HttpMethod.GET, entity, String.class);
             String jsonCrudo = response.getBody();
 
             ObjectMapper mapper = new ObjectMapper();
