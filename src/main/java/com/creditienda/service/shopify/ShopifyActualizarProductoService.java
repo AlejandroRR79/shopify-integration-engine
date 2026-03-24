@@ -7,7 +7,6 @@ import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -36,15 +35,15 @@ public class ShopifyActualizarProductoService {
     @Value("${shopify.access.token}")
     private String accessToken;
 
-    @Autowired
-    private RestTemplate restTemplate;
-
+    private final RestTemplate restTemplate;
     private final NotificacionService notificacionService;
 
     private String cachedLocationId = null;
 
-    public ShopifyActualizarProductoService(NotificacionService notificacionService) {
+    public ShopifyActualizarProductoService(NotificacionService notificacionService,
+            RestTemplate restTemplate) {
         this.notificacionService = notificacionService;
+        this.restTemplate = restTemplate;
     }
 
     /** Obtiene y cachea el locationId */

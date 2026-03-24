@@ -20,7 +20,6 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcCall;
@@ -38,8 +37,11 @@ public class ComplementoPagoBatchService {
     private static final int MAX_ROWS = 10_000;
     private static final int MAX_DETALLE = 100;
 
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
+    private final JdbcTemplate jdbcTemplate;
+
+    public ComplementoPagoBatchService(JdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
+    }
 
     @SuppressWarnings("unchecked")
     public Map<String, Object> procesarBatch(MultipartFile file) {
@@ -111,7 +113,7 @@ public class ComplementoPagoBatchService {
             JdbcTemplate localJdbc = new JdbcTemplate(jdbcTemplate.getDataSource());
             localJdbc.setQueryTimeout(120);
 
-            SimpleJdbcCall call = new SimpleJdbcCall(jdbcTemplate)
+            SimpleJdbcCall call = new SimpleJdbcCall(localJdbc)
                     .withProcedureName("sp_insert_complemento_pago_batch");
 
             Map<String, Object> out = call.execute(

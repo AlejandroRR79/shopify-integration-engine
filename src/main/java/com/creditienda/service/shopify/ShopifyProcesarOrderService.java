@@ -10,7 +10,6 @@ import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -42,19 +41,19 @@ public class ShopifyProcesarOrderService {
     @Value("${shopify.access.token}")
     private String accessToken;
 
-    @Autowired
-    private RestTemplate restTemplate;
-
+    private final RestTemplate restTemplate;
     private final B2BService b2bService;
     private final B2BTokenService b2bTokenService;
     private final NotificacionService notificacionService;
 
     public ShopifyProcesarOrderService(B2BService b2bService,
             NotificacionService notificacionService,
-            B2BTokenService b2bTokenService) {
+            B2BTokenService b2bTokenService,
+            RestTemplate restTemplate) {
         this.b2bService = b2bService;
         this.notificacionService = notificacionService;
         this.b2bTokenService = b2bTokenService;
+        this.restTemplate = restTemplate;
     }
 
     public boolean procesarUnaOrden() {
@@ -87,7 +86,7 @@ public class ShopifyProcesarOrderService {
             Map<String, Object> registro = ShopifyOrderMapper.transformar(orden);
             String jsonRegistro = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(registro);
 
-            System.out.println("📦 JSON transformado para B2B:\n" + jsonRegistro);
+            logger.debug("📦 JSON transformado para B2B:\n{}", jsonRegistro);
 
             String b2bToken = b2bTokenService.obtenerTokenOC();
             return b2bService.enviarOrden(jsonRegistro, b2bToken, true);
@@ -230,7 +229,7 @@ public class ShopifyProcesarOrderService {
             Map<String, Object> registro = ShopifyOrderMapper.transformar(orden);
             String jsonRegistro = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(registro);
 
-            System.out.println("📦 JSON transformado para B2B:\n" + jsonRegistro);
+            logger.debug("📦 JSON transformado para B2B:\n{}", jsonRegistro);
 
             String b2bToken = b2bTokenService.obtenerTokenOC();
             return b2bService.enviarOrden(jsonRegistro, b2bToken, true);

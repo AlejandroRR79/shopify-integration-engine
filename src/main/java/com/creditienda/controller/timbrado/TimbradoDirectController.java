@@ -11,18 +11,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.creditienda.service.timbrado.TimbradoJsonDirectService;
-
 @RestController
 @RequestMapping("/api/timbrado/secure")
 public class TimbradoDirectController {
 
     private static final Logger logger = LoggerFactory.getLogger(TimbradoDirectController.class);
 
-    // private final TimbradoJsonDirectService timbradoService;
-
-    public TimbradoDirectController(TimbradoJsonDirectService timbradoService) {
-        // this.timbradoService = timbradoService;
+    public TimbradoDirectController() {
     }
 
     @PostMapping("/timbre")

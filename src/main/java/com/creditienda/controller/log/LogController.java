@@ -74,7 +74,7 @@ public class LogController {
                 int ch = file.read();
                 if (ch == '\n') {
                     if (sb.length() > 0) {
-                        result.add(0, new String(sb.reverse().toString().getBytes(), charset));
+                        result.add(0, new String(sb.reverse().toString().getBytes(charset), charset));
                         sb.setLength(0);
                         lineCount++;
                     }
@@ -84,7 +84,7 @@ public class LogController {
                 pos--;
             }
             if (sb.length() > 0 && lineCount < maxLines) {
-                result.add(0, new String(sb.reverse().toString().getBytes(), charset));
+                result.add(0, new String(sb.reverse().toString().getBytes(charset), charset));
             }
         }
         return result;

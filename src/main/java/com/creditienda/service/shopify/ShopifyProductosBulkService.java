@@ -10,7 +10,6 @@ import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -40,11 +39,14 @@ public class ShopifyProductosBulkService {
     @Value("${shopify.bulk.chunk-size:20}")
     private int bulkChunkSize;
 
-    @Autowired
-    private RestTemplate restTemplate;
+    private final RestTemplate restTemplate;
 
     // 🔒 cache location
     private volatile String cachedLocationId;
+
+    public ShopifyProductosBulkService(RestTemplate restTemplate) {
+        this.restTemplate = restTemplate;
+    }
 
     // ================= API PÚBLICA =================
 

@@ -76,7 +76,7 @@ public class B2BService {
 
         } catch (Exception ex) {
             String mensaje = "Error inesperado → " + (ex.getMessage() != null ? ex.getMessage() : "Sin detalle");
-            logger.error("❌ Error inesperado al enviar orden", ex.getMessage());
+            logger.error("❌ Error inesperado al enviar orden", ex);
 
             if (enviarNotificacion) {
                 notificacionService.enviarError(

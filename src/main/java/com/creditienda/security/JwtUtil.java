@@ -22,7 +22,7 @@ public class JwtUtil {
     private static final long EXPIRATION_TIME_MS = 60 * 60 * 1000;
 
     private Key getSigningKey() {
-        return Keys.hmacShaKeyFor(secret.getBytes());
+        return Keys.hmacShaKeyFor(secret.getBytes(java.nio.charset.StandardCharsets.UTF_8));
     }
 
     public String generarToken(String username) {

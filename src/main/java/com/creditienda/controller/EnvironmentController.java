@@ -142,7 +142,7 @@ public class EnvironmentController {
             // ❌ Error explícito
             masked.clear();
             masked.put("status", "ERROR");
-            masked.put("message", "Error al obtener la configuración {}  " + e != null ? e.getMessage() : "");
+            masked.put("message", "Error al obtener la configuración: " + (e != null ? e.getMessage() : ""));
             masked.put("timestamp", LocalDateTime.now().toString());
         }
 

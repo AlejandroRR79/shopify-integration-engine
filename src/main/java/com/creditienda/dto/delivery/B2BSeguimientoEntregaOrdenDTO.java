@@ -70,8 +70,17 @@ public class B2BSeguimientoEntregaOrdenDTO {
     // 🔹 Objetos anidados
     private EstatusOdcDTO estatusOdc;
     private Object estatusDelivery;
+    private EstatusDeliveryDTO estatusDeliveryDTO;
 
     // ================== GETTERS & SETTERS ==================
+
+    public EstatusDeliveryDTO getEstatusDeliveryDTO() {
+        return estatusDeliveryDTO;
+    }
+
+    public void setEstatusDeliveryDTO(EstatusDeliveryDTO estatusDeliveryDTO) {
+        this.estatusDeliveryDTO = estatusDeliveryDTO;
+    }
 
     public Long getIdShopifyOrder() {
         return idShopifyOrder;
