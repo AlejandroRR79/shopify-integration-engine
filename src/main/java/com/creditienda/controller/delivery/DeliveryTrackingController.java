@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.creditienda.service.delivery.DeliveryTrackingDAOService;
 
 @RestController
+
 @RequestMapping("/api/secure/delivery")
 public class DeliveryTrackingController {
 
@@ -24,7 +25,8 @@ public class DeliveryTrackingController {
     }
 
     /**
-     * Dispara manualmente la sincronización de estatus de entrega vía DAO (Estafeta → DB).
+     * Dispara manualmente la sincronización de estatus de entrega vía DAO (Estafeta
+     * → DB).
      * Requiere JWT Bearer token.
      */
     @PostMapping("/sincronizar")

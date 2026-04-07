@@ -59,6 +59,7 @@ public class B2BSeguimientoEntregaOrdenDTO {
     private String descripcionEntrega;
     private String originResultCode;
     private String destinationsResultCode;
+    private String paqueteria;
 
     // 🔹 Guías
     private String waybill;
@@ -72,7 +73,52 @@ public class B2BSeguimientoEntregaOrdenDTO {
     private Object estatusDelivery;
     private EstatusDeliveryDTO estatusDeliveryDTO;
 
+    private String waybillDevolution;
+    private String trackingCodeDevolution;
+    private String cveEstatusOdc;
+    private String cveEstatusDelivery;
+    private Integer codigoDelivery;
     // ================== GETTERS & SETTERS ==================
+
+    public String getCveEstatusOdc() {
+        return cveEstatusOdc;
+    }
+
+    public String getWaybillDevolution() {
+        return waybillDevolution;
+    }
+
+    public void setWaybillDevolution(String waybillDevolution) {
+        this.waybillDevolution = waybillDevolution;
+    }
+
+    public String getTrackingCodeDevolution() {
+        return trackingCodeDevolution;
+    }
+
+    public void setTrackingCodeDevolution(String trackingCodeDevolution) {
+        this.trackingCodeDevolution = trackingCodeDevolution;
+    }
+
+    public void setCveEstatusOdc(String cveEstatusOdc) {
+        this.cveEstatusOdc = cveEstatusOdc;
+    }
+
+    public String getCveEstatusDelivery() {
+        return cveEstatusDelivery;
+    }
+
+    public void setCveEstatusDelivery(String cveEstatusDelivery) {
+        this.cveEstatusDelivery = cveEstatusDelivery;
+    }
+
+    public Integer getCodigoDelivery() {
+        return codigoDelivery;
+    }
+
+    public void setCodigoDelivery(Integer codigoDelivery) {
+        this.codigoDelivery = codigoDelivery;
+    }
 
     public EstatusDeliveryDTO getEstatusDeliveryDTO() {
         return estatusDeliveryDTO;
@@ -448,5 +494,13 @@ public class B2BSeguimientoEntregaOrdenDTO {
 
     public void setEstatusDelivery(Object estatusDelivery) {
         this.estatusDelivery = estatusDelivery;
+    }
+
+    public String getPaqueteria() {
+        return paqueteria;
+    }
+
+    public void setPaqueteria(String paqueteria) {
+        this.paqueteria = paqueteria;
     }
 }

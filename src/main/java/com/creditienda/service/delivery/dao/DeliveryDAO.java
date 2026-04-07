@@ -2,8 +2,11 @@ package com.creditienda.service.delivery.dao;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
+import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.slf4j.Logger;
 
 import org.springframework.stereotype.Repository;
 
@@ -15,6 +18,8 @@ import com.creditienda.dto.delivery.EstatusOdcDTO;
 @Repository
 public class DeliveryDAO {
 
+    private static final Logger logger = LoggerFactory.getLogger(DeliveryDAO.class);
+
     private final JdbcTemplate jdbcTemplate;
 
     public DeliveryDAO(JdbcTemplate jdbcTemplate) {
@@ -22,66 +27,77 @@ public class DeliveryDAO {
     }
 
     public List<B2BSeguimientoEntregaOrdenDTO> findByEstatus(
-            List<Integer> estatusOdcList,
+            List<String> estatusOdcList,
             List<Integer> estatusDeliveryList) {
 
         StringBuilder sql = new StringBuilder("""
-                SELECT
-                idShopifyOrder,
-                idSucursalCliente,
-                idSucursalProveedor,
-                idShopify,
-                email,
-                name,
-                financialStatus,
-                fulfillmentStatus,
-                totalPrice,
-                subtotalPrice,
-                totalTax,
-                currency,
-                orderNumber,
-                createdAt,
-                updatedAt,
-                customerName,
-                shippingAddess1,
-                shippingAddess2,
-                shippingCity,
-                shippingCountry,
-                shippingPhone,
-                shippingCP,
-                shippingState,
-                shippingContact,
-                detailPeso,
-                detailCantidad,
-                detailCodigoAMS,
-                detailDescripcion,
-                idMarketplace,
-                precio,
-                precio_producto,
-                idEstatusOdc,
-                comision,
-                idEstatusDelivery,
-                fechaEstatusDelivery,
-                originResultCode,
-                destinationsResultCode,
-                waybill,
-                trackingCode,
-                rutaGuia,
-                archivoGuia,
-                destinationAddress,
-                referenceNumber,
-                fechaSolicitud,
-                descripcionEntrega,
-                shippingAddress,
-                shippingNumExt,
-                shippingColony,
-                reasonCodeDescription,
-                isInsurance,
-                paqueteria
-                FROM SHOPIFY_ORDER
-                WHERE idEstatusOdc IN (
-                """);
+                        SELECT
+                        so.idShopifyOrder,
+                        so.idSucursalCliente,
+                        so.idSucursalProveedor,
+                        so.idShopify,
+                        so.email,
+                        so.name,
+                        so.financialStatus,
+                        so.fulfillmentStatus,
+                        so.totalPrice,
+                        so.subtotalPrice,
+                        so.totalTax,
+                        so.currency,
+                        so.orderNumber,
+                        so.createdAt,
+                        so.updatedAt,
+                        so.customerName,
+                        so.shippingAddess1,
+                        so.shippingAddess2,
+                        so.shippingCity,
+                        so.shippingCountry,
+                        so.shippingPhone,
+                        so.shippingCP,
+                        so.shippingState,
+                        so.shippingContact,
+                        so.detailPeso,
+                        so.detailCantidad,
+                        so.detailCodigoAMS,
+                        so.detailDescripcion,
+                        so.idMarketplace,
+                        so.precio,
+                        so.precio_producto,
+                        so.idEstatusOdc,
+                        so.comision,
+                        so.idEstatusDelivery,
+                        so.fechaEstatusDelivery,
+                        so.originResultCode,
+                        so.destinationsResultCode,
+                        so.waybill,
+                        so.trackingCode,
+                        so.rutaGuia,
+                        so.archivoGuia,
+                        so.destinationAddress,
+                        so.referenceNumber,
+                        so.fechaSolicitud,
+                        so.descripcionEntrega,
+                        so.shippingAddress,
+                        so.shippingNumExt,
+                        so.shippingColony,
+                        so.reasonCodeDescription,
+                        so.isInsurance,
+                        so.paqueteria,
 
+                        -- 🔥 NUEVO
+                        so.waybillDevolution,
+                        so.trackingCodeDevolution,
+                        eo.cveEstatusOdc,
+                        ed.cveEstatusDelivery,
+                        ed.codigo AS codigoDelivery
+
+                        FROM SHOPIFY_ORDER so
+                        JOIN EstatusOdc eo
+                            ON eo.idEstatusOdc = so.idEstatusOdc
+                        LEFT JOIN EstatusDelivery ed
+                            ON ed.idEstatusDelivery = so.idEstatusDelivery
+                        WHERE eo.cveEstatusOdc IN (
+                """);
         // 🔥 IN dinámico ODC
         sql.append(String.join(",", estatusOdcList.stream().map(x -> "?").toList())).append(")");
 
@@ -89,11 +105,13 @@ public class DeliveryDAO {
 
         // 🔥 IN dinámico DELIVERY (opcional)
         if (estatusDeliveryList != null && !estatusDeliveryList.isEmpty()) {
-            sql.append(" AND idEstatusDelivery IN (");
+            sql.append(" AND so.idEstatusDelivery IN (");
             sql.append(String.join(",", estatusDeliveryList.stream().map(x -> "?").toList()));
             sql.append(")");
             params.addAll(estatusDeliveryList);
         }
+
+        logger.debug("🔍 Ejecutando SQL: {}", sql);
 
         return jdbcTemplate.query(
                 sql.toString(),
@@ -152,12 +170,15 @@ public class DeliveryDAO {
                     dto.setDetailCodigoAMS(rs.getString("detailCodigoAMS"));
                     dto.setDetailDescripcion(rs.getString("detailDescripcion"));
 
-                    // 🔹 Delivery
-                    dto.setIdEstatusOdc(rs.getInt("idEstatusOdc"));
-                    dto.setIdEstatusDelivery(rs.getInt("idEstatusDelivery"));
+                    // 🔹 Delivery IDs
+                    dto.setIdEstatusOdc(rs.getObject("idEstatusOdc", Integer.class));
+                    dto.setIdEstatusDelivery(rs.getObject("idEstatusDelivery", Integer.class));
                     dto.setDescripcionEntrega(rs.getString("descripcionEntrega"));
-                    dto.setOriginResultCode(rs.getString("originResultCode"));
-                    dto.setDestinationsResultCode(rs.getString("destinationsResultCode"));
+
+                    // 🔥 NUEVO (CLAVES)
+                    dto.setCveEstatusOdc(rs.getString("cveEstatusOdc"));
+                    dto.setCveEstatusDelivery(rs.getString("cveEstatusDelivery"));
+                    dto.setCodigoDelivery(rs.getObject("codigoDelivery", Integer.class));
 
                     // 🔹 Guías
                     dto.setWaybill(rs.getString("waybill"));
@@ -165,81 +186,103 @@ public class DeliveryDAO {
                     dto.setRutaGuia(rs.getString("rutaGuia"));
                     dto.setArchivoGuia(rs.getString("archivoGuia"));
                     dto.setReferenceNumber(rs.getString("referenceNumber"));
+                    dto.setWaybillDevolution(rs.getString("waybillDevolution"));
+                    dto.setTrackingCodeDevolution(rs.getString("trackingCodeDevolution"));
 
-                    // 🔥 Estatus ODC (mínimo viable sin romper B2B)
-                    EstatusOdcDTO estatus = new EstatusOdcDTO();
-                    estatus.setIdEstatusOdc(rs.getInt("idEstatusOdc"));
-                    estatus.setIsOdc(true);
+                    dto.setPaqueteria(rs.getString("paqueteria"));
 
-                    dto.setEstatusOdc(estatus);
-                    // 🔥 Estatus DELIVERY (nuevo)
-                    EstatusDeliveryDTO estatusDelivery = new EstatusDeliveryDTO();
-                    estatusDelivery.setDescripcion(rs.getString("descripcionEntrega"));
-                    Integer idDelivery = rs.getObject("idEstatusDelivery") != null
-                            ? rs.getInt("idEstatusDelivery")
-                            : null;
-
-                    estatusDelivery.setIdEstatusDelivery(idDelivery);
-
-                    dto.setEstatusDeliveryDTO(estatusDelivery);
                     return dto;
                 });
     }
 
-    public void updateEstatusDelivery(B2BActualizarEstatusEntregaDTO dto) {
+    public void updateEstatusDelivery(
+            B2BActualizarEstatusEntregaDTO dto,
+            String cveEstatusOdcNuevo,
+            boolean esDevolucion) {
 
-        // 🔍 1. Validación básica (evita basura)
-        if (dto.getOrderNumber() == null) {
-            throw new IllegalArgumentException("orderNumber es requerido");
+        // 🔥 VALIDACIÓN (AQUÍ VA)
+        if (cveEstatusOdcNuevo == null) {
+            throw new IllegalArgumentException("cveEstatusOdcNuevo es null");
+        }
+        if (dto.getCveEstatusDelivery() == null) {
+            throw new IllegalArgumentException("cveEstatusDelivery es null");
         }
 
-        // 🔥 2. INSERT HISTORIAL
+        if (dto.getIdShopifyOrder() == null) {
+            throw new IllegalArgumentException("idShopifyOrder es null");
+        }
+        Long idShopifyOrder = dto.getIdShopifyOrder();
+
+        // 🔥 INSERT HISTORIAL (TODO POR CVE → JOIN A IDS)
         String insertSql = """
-                    INSERT INTO SHOPIFY_ORDER_HISTORY (
-                        orderNumber,
-                        trackingCode,
-                        codigoEntrega,
-                        descripcionEntrega,
-                        fechaEstatus,
-                        reasonCodeDescription,
-                        createdAt
+                    INSERT INTO SHOPIFY_ORDER_DELIVERY (
+                        idShopifyOrder,
+                        idEstatusDelivery,
+                        idEstatusOdc,
+                        fecha_delivery,
+                        created_at,
+                        created_by,
+                        reasonCodeDescription
                     )
-                    SELECT ?, ?, ?, ?, ?, ?, getdate()
-                    WHERE NOT EXISTS (
-                        SELECT 1 FROM SHOPIFY_ORDER_HISTORY
-                        WHERE orderNumber = ?
-                        AND codigoEntrega = ?
-                    )
+                    SELECT
+                        ?,
+                        ed.idEstatusDelivery,
+                        eo.idEstatusOdc,
+                        ?,
+                        GETDATE(),
+                        'SYSTEM',
+                        ?
+                    FROM EstatusDelivery ed
+                    JOIN EstatusOdc eo ON eo.cveEstatusOdc = ?
+                    WHERE ed.cveEstatusDelivery = ?
                 """;
 
         jdbcTemplate.update(insertSql,
-                dto.getOrderNumber(),
-                dto.getTrackingCode(),
-                dto.getCodigoEntrega(),
-                dto.getDescripcionEntrega(),
+                idShopifyOrder,
                 dto.getFechaEstatus(),
                 dto.getReasonCodeDescription(),
-                dto.getOrderNumber(),
-                dto.getCodigoEntrega());
+                cveEstatusOdcNuevo, // ✅ CVE ODC
+                dto.getCveEstatusDelivery() // ✅ CVE DELIVERY
+        );
 
-        // 🔥 3. UPDATE PRINCIPAL
+        // 🔥 UPDATE PRINCIPAL (JOIN DOBLE)
         String updateSql = """
-                    UPDATE SHOPIFY_ORDER
+                    UPDATE so
                     SET
-                        trackingCode = ?,
-                        idEstatusDelivery = ?,
-                        descripcionEntrega = ?,
-                        fechaEstatusDelivery = ?,
-                        reasonCodeDescription = ?
-                    WHERE orderNumber = ?
+                        so.idEstatusDelivery = ed.idEstatusDelivery,
+                        so.idEstatusOdc = eo.idEstatusOdc,
+                        so.trackingCode = ?,
+                        so.descripcionEntrega = ?,
+                        so.fechaEstatusDelivery = ?,
+                        so.reasonCodeDescription = ?
+                    FROM SHOPIFY_ORDER so
+                    JOIN EstatusDelivery ed ON ed.cveEstatusDelivery = ?
+                    JOIN EstatusOdc eo ON eo.cveEstatusOdc = ?
+                    WHERE so.idShopifyOrder = ?
                 """;
 
         jdbcTemplate.update(updateSql,
                 dto.getTrackingCode(),
-                dto.getCodigoEntrega(),
                 dto.getDescripcionEntrega(),
                 dto.getFechaEstatus(),
                 dto.getReasonCodeDescription(),
-                dto.getOrderNumber());
+                dto.getCveEstatusDelivery(), // ✅ CVE DELIVERY
+                cveEstatusOdcNuevo, // ✅ CVE ODC
+                dto.getIdShopifyOrder());
+
+        // 🔥 UPDATE DEVOLUCIÓN
+        if (esDevolucion && dto.getWaybillDevolution() != null) {
+
+            String updateDev = """
+                        UPDATE SHOPIFY_ORDER
+                        SET waybillDevolution = ? , trackingCodeDevolution = ?
+                        WHERE idShopifyOrder = ?
+                    """;
+
+            jdbcTemplate.update(updateDev,
+                    dto.getWaybillDevolution(),
+                    dto.getTrackingCodeDevolution(),
+                    dto.getIdShopifyOrder());
+        }
     }
 }

@@ -47,6 +47,7 @@ public class SecurityConfig {
                                                 .requestMatchers("/api/shopify/secure/**").authenticated()
                                                 .requestMatchers("/api/timbrado/secure/**").authenticated()
                                                 .requestMatchers("/api/estafeta/**").authenticated()
+                                                .requestMatchers("/api/secure/delivery/**").authenticated()
                                                 .anyRequest().denyAll())
                                 .addFilterBefore(accessTokenFilter, UsernamePasswordAuthenticationFilter.class)
 

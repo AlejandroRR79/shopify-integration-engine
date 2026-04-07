@@ -15,6 +15,36 @@ public class B2BActualizarEstatusEntregaDTO {
     private String fechaEstatus;
     // 🔥 NUEVO CAMPO
     private String reasonCodeDescription;
+    private String waybillDevolution;
+    private String trackingCodeDevolution;
+    private String codigoEstafetaOriginal;
+
+    private String cveEstatusDelivery;
+    private Long idShopifyOrder;
+
+    public Long getIdShopifyOrder() {
+        return idShopifyOrder;
+    }
+
+    public void setIdShopifyOrder(Long idShopifyOrder) {
+        this.idShopifyOrder = idShopifyOrder;
+    }
+
+    public String getCodigoEstafetaOriginal() {
+        return codigoEstafetaOriginal;
+    }
+
+    public String getCveEstatusDelivery() {
+        return cveEstatusDelivery;
+    }
+
+    public void setCveEstatusDelivery(String cveEstatusDelivery) {
+        this.cveEstatusDelivery = cveEstatusDelivery;
+    }
+
+    public void setCodigoEstafetaOriginal(String codigoEstafetaOriginal) {
+        this.codigoEstafetaOriginal = codigoEstafetaOriginal;
+    }
 
     public String getReasonCodeDescription() {
         return reasonCodeDescription;
@@ -93,5 +123,21 @@ public class B2BActualizarEstatusEntregaDTO {
                 ", fechaEstatus='" + fechaEstatus + '\'' +
                 ", reasonCodeDescription='" + reasonCodeDescription + '\'' +
                 '}';
+    }
+
+    public String getWaybillDevolution() {
+        return waybillDevolution;
+    }
+
+    public void setWaybillDevolution(String waybillDevolution) {
+        this.waybillDevolution = waybillDevolution;
+    }
+
+    public String getTrackingCodeDevolution() {
+        return trackingCodeDevolution;
+    }
+
+    public void setTrackingCodeDevolution(String trackingCodeDevolution) {
+        this.trackingCodeDevolution = trackingCodeDevolution;
     }
 }

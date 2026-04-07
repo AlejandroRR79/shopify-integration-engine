@@ -275,6 +275,17 @@ public class EstafetaResponse {
         private String spanishName;
         private String estimatedDeliveryDate;
 
+        @JsonProperty("devolutionWayBill")
+        private String devolutionWayBill;
+
+        public String getDevolutionWayBill() {
+            return devolutionWayBill;
+        }
+
+        public void setDevolutionWayBill(String devolutionWayBill) {
+            this.devolutionWayBill = devolutionWayBill;
+        }
+
         public String getCode() {
             return code;
         }
