@@ -2,8 +2,6 @@ package com.creditienda.service.delivery.dao;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
-
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.slf4j.Logger;
@@ -11,9 +9,7 @@ import org.slf4j.Logger;
 import org.springframework.stereotype.Repository;
 
 import com.creditienda.dto.delivery.B2BSeguimientoEntregaOrdenDTO;
-import com.creditienda.dto.delivery.EstatusDeliveryDTO;
 import com.creditienda.dto.delivery.B2BActualizarEstatusEntregaDTO;
-import com.creditienda.dto.delivery.EstatusOdcDTO;
 
 @Repository
 public class DeliveryDAO {
@@ -230,7 +226,7 @@ public class DeliveryDAO {
                         eo.idEstatusOdc,
                         ?,
                         GETDATE(),
-                        'SYSTEM',
+                        'SYSTEM_CRON',
                         ?
                     FROM EstatusDelivery ed
                     JOIN EstatusOdc eo ON eo.cveEstatusOdc = ?

@@ -116,7 +116,8 @@ public class EnvironmentController {
                 // ───────── Build info ─────────
                 "app.build.name",
                 "app.build.version",
-                "app.build.date"
+                "app.build.date",
+                "tracking.mode"
 
         };
 
