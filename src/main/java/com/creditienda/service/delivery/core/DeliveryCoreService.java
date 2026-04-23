@@ -1,18 +1,22 @@
 package com.creditienda.service.delivery.core;
 
 import java.util.List;
+import java.util.Map;
 
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
 
 import com.creditienda.dto.delivery.B2BActualizarEstatusEntregaDTO;
 import com.creditienda.dto.delivery.B2BSeguimientoEntregaOrdenDTO;
-
+import com.creditienda.dto.delivery.FacturacionResponse;
 import com.creditienda.service.delivery.dao.DeliveryDAO;
 import com.creditienda.util.constantes.EstatusCve;
-
-import org.slf4j.Logger;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Service
 public class DeliveryCoreService {
@@ -20,8 +24,11 @@ public class DeliveryCoreService {
     private final DeliveryDAO dao;
     private static final Logger log = LoggerFactory.getLogger(DeliveryCoreService.class);
 
-    public DeliveryCoreService(DeliveryDAO dao) {
+    private final RestTemplate restTemplate;
+
+    public DeliveryCoreService(DeliveryDAO dao, RestTemplate restTemplate) {
         this.dao = dao;
+        this.restTemplate = restTemplate;
     }
 
     @Transactional(readOnly = true)
@@ -151,4 +158,39 @@ public class DeliveryCoreService {
         return cveOdcActual;
     }
 
+    public FacturacionResponse invocarFacturacion(String url, Map<String, String> body) {
+
+        FacturacionResponse result = new FacturacionResponse();
+
+        try {
+
+            ResponseEntity<String> response = restTemplate.postForEntity(url, body, String.class);
+
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode json = mapper.readTree(response.getBody());
+
+            boolean isSuccess = json.has("isSuccess") && json.get("isSuccess").asBoolean();
+
+            String nombreB2B = null;
+
+            if (json.has("data") && json.get("data").has("documentoB2B")) {
+                JsonNode doc = json.get("data").get("documentoB2B");
+
+                if (doc.has("NombreB2B")) {
+                    nombreB2B = doc.get("NombreB2B").asText();
+                }
+            }
+
+            result.setSuccess(isSuccess);
+            result.setNombreB2B(nombreB2B);
+
+        } catch (Exception e) {
+
+            log.error("❌ Error invocando facturación", e);
+
+            result.setSuccess(false);
+        }
+
+        return result;
+    }
 }

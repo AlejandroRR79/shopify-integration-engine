@@ -3,8 +3,10 @@ package com.creditienda.service.delivery;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,6 +15,7 @@ import org.springframework.stereotype.Service;
 
 import com.creditienda.dto.delivery.B2BActualizarEstatusEntregaDTO;
 import com.creditienda.dto.delivery.B2BSeguimientoEntregaOrdenDTO;
+import com.creditienda.dto.delivery.FacturacionResponse;
 import com.creditienda.model.EstafetaResponse;
 import com.creditienda.service.EstafetHistorialClient;
 import com.creditienda.service.delivery.core.DeliveryCoreService;
@@ -51,6 +54,12 @@ public class DeliveryTrackingDAOService {
 
     @Value("${estafeta.api.url}")
     private String estafetaApiUrl;
+
+    @Value("${b2b.delivery.endpoint.facturar}")
+    private String b2bFacturarEndpoint;
+
+    @Value("${b2b.delivery.usuarioFacturacion}")
+    private String usuarioB2B;
 
     public DeliveryTrackingDAOService(
             DeliveryCoreService coreService,
@@ -255,16 +264,80 @@ public class DeliveryTrackingDAOService {
 
             log.info("➡ Actualizando DB: {}", update);
 
-            // 🔥 UPDATE REAL
-            coreService.updateEstatusDelivery(
-                    update,
-                    orden.getCveEstatusOdc(), // ✅ ESTE ES EL CAMBIO IMPORTANTE
-                    esDevolucion);
+            boolean updateOk = false;
 
-            actualizadas.add(
-                    "OC=" + update.getOrderNumber() +
-                            " | tracking=" + update.getTrackingCode() +
-                            " | cve=" + update.getCveEstatusDelivery());
+            try {
+                // 🔥 UPDATE REAL
+                coreService.updateEstatusDelivery(
+                        update,
+                        orden.getCveEstatusOdc(), // ✅ ESTE ES EL CAMBIO IMPORTANTE
+                        esDevolucion);
+
+                actualizadas.add(
+                        "OC=" + update.getOrderNumber() +
+                                " | fechaSolicitud=" + orden.getFechaSolicitud() +
+                                " | waybill=" + guia +
+                                " | tracking=" + update.getTrackingCode() +
+                                " | cve=" + update.getCveEstatusDelivery());
+
+                updateOk = true;
+
+            } catch (Exception ex) {
+
+                log.error("❌ Error actualizando BD OC={}", orden.getOrderNumber(), ex);
+
+                errores.add("Error update BD OC=" + orden.getOrderNumber());
+
+                return; // 🔥 NO facturas
+            }
+
+            // 🔥 SOLO si update OK
+            boolean esEntregado = EstatusCve.ENTREGADO.equals(cveDelivery) ||
+                    EstatusCve.ENTREGADO_SUCURSAL.equals(cveDelivery);
+
+            if (updateOk && esEntregado) {
+
+                try {
+                    log.info("📄 Invocando facturación B2B OC={}", orden.getOrderNumber());
+
+                    String url = b2bBaseUrl + b2bFacturarEndpoint;
+
+                    Map<String, String> body = new HashMap<>();
+                    body.put("idShopifyOrder", String.valueOf(orden.getIdShopifyOrder()));
+                    body.put("usuario", usuarioB2B);
+                    FacturacionResponse resp = coreService.invocarFacturacion(url, body);
+
+                    if (!resp.isSuccess()) {
+
+                        log.error("❌ Facturación fallida OC={}", orden.getOrderNumber());
+
+                        errores.add(
+                                "Facturación fallida | OC=" + orden.getOrderNumber() +
+                                        " | fechaSolicitud=" + orden.getFechaSolicitud() +
+                                        " | waybill=" + guia);
+
+                    } else {
+
+                        String nombreB2B = resp.getNombreB2B() != null
+                                ? resp.getNombreB2B()
+                                : "N/A";
+
+                        actualizadas.add(
+                                "OC=" + orden.getOrderNumber() +
+                                        " | fechaSolicitud=" + orden.getFechaSolicitud() +
+                                        " | waybill=" + guia +
+                                        " | documentoB2B=" + nombreB2B);
+
+                        log.info("📄 Facturación OK OC={} documento={}", orden.getOrderNumber(), nombreB2B);
+                    }
+
+                } catch (Exception ex) {
+
+                    log.error("❌ Error facturación OC={}", orden.getOrderNumber(), ex);
+
+                    errores.add("Error facturación OC=" + orden.getOrderNumber());
+                }
+            }
 
         } catch (Exception e) {
 

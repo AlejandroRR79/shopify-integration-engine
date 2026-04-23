@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.creditienda.service.delivery.DeliveryTrackingDAOService;
+import com.creditienda.service.facturacion.DeliveryFacturacionService;
 
 @RestController
 
@@ -20,8 +21,13 @@ public class DeliveryTrackingController {
 
     private final DeliveryTrackingDAOService deliveryTrackingDAOService;
 
-    public DeliveryTrackingController(DeliveryTrackingDAOService deliveryTrackingDAOService) {
+    private final DeliveryFacturacionService deliveryFacturacionService;
+
+    public DeliveryTrackingController(DeliveryTrackingDAOService deliveryTrackingDAOService,
+            DeliveryFacturacionService deliveryFacturacionService) {
         this.deliveryTrackingDAOService = deliveryTrackingDAOService;
+        this.deliveryFacturacionService = deliveryFacturacionService;
+
     }
 
     /**
@@ -41,6 +47,32 @@ public class DeliveryTrackingController {
             logger.error("❌ Error en sincronización manual de entrega", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error al sincronizar estatus de entrega: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Dispara manualmente la factruacion de entregas. Esto incluye la generación de
+     * facturas y su timbrado.
+     * Requiere JWT Bearer token.
+     */
+
+    @PostMapping("/facturar")
+    public ResponseEntity<String> ejecutarFacturacion(Authentication authentication) {
+
+        logger.info("📄 Facturación manual solicitada por: {}", authentication.getName());
+
+        try {
+
+            deliveryFacturacionService.ejecutarFacturacion();
+
+            return ResponseEntity.ok("✅ Facturación ejecutada correctamente");
+
+        } catch (Exception e) {
+
+            logger.error("❌ Error en facturación manual", e);
+
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error en facturación: " + e.getMessage());
         }
     }
 }

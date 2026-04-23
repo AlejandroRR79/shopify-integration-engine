@@ -13,26 +13,23 @@
         <property name="jobClass" value="com.creditienda.job.EstafetaJob" />
         <property name="durability" value="true" />
     </bean>
-    <bean id="triggerEstafeta" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
-        <property name="jobDetail" ref="jobEstafeta" />
-
-        <property name="cronExpression" value="${estafeta.cron.exp}" />
-
-        <!-- 
-        <property name="cronExpression" value="0 0/1 * * * ?" />
-        -->
-        <property name="misfireInstructionName" value="MISFIRE_INSTRUCTION_DO_NOTHING" />
-    </bean>
-
-    <!-- Job Timbrado -->
-    <bean id="jobDetailTimbrado" class="org.springframework.scheduling.quartz.JobDetailFactoryBean">
-        <property name="jobClass" value="com.creditienda.job.TimbradoJob" />
+    <!-- Job para facturación -->
+    <bean id="jobFacturacion" class="org.springframework.scheduling.quartz.JobDetailFactoryBean">
+        <property name="jobClass" value="com.creditienda.job.FacturacionJob" />
         <property name="durability" value="true" />
     </bean>
 
-    <bean id="triggerTimbrado" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
-        <property name="jobDetail" ref="jobDetailTimbrado" />
-        <property name="cronExpression" value="0 0 0/12 * * ?" />
+    <bean id="triggerEstafeta" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <property name="jobDetail" ref="jobEstafeta" />
+        <property name="cronExpression" value="${estafeta.cron.exp}" />
+        <property name="misfireInstructionName" value="MISFIRE_INSTRUCTION_DO_NOTHING" />
+    </bean>
+
+    <!-- Job para facturación -->
+    <bean id="triggerFacturacion" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <property name="jobDetail" ref="jobFacturacion" />
+        <property name="cronExpression" value="${facturacion.cron.exp}" />
+        <property name="misfireInstructionName" value="MISFIRE_INSTRUCTION_DO_NOTHING" />
     </bean>
 
     <!-- JobFactory que permite inyección de dependencias -->
@@ -45,9 +42,7 @@
         <property name="jobFactory" ref="jobFactory" />
         <property name="triggers">
             <list>
-                <!--
-                <ref bean="triggerTimbrado" />
-                -->
+                <ref bean="triggerFacturacion" />
                 <ref bean="triggerEstafeta" />
 
             </list>
