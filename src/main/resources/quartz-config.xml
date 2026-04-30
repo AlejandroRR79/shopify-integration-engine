@@ -13,11 +13,14 @@
         <property name="jobClass" value="com.creditienda.job.EstafetaJob" />
         <property name="durability" value="true" />
     </bean>
-    <!-- Job para facturación -->
+
+    <!-- ❌ Job para facturación (DESHABILITADO) -->
+    <!--
     <bean id="jobFacturacion" class="org.springframework.scheduling.quartz.JobDetailFactoryBean">
         <property name="jobClass" value="com.creditienda.job.FacturacionJob" />
         <property name="durability" value="true" />
     </bean>
+    -->
 
     <bean id="triggerEstafeta" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
         <property name="jobDetail" ref="jobEstafeta" />
@@ -25,39 +28,33 @@
         <property name="misfireInstructionName" value="MISFIRE_INSTRUCTION_DO_NOTHING" />
     </bean>
 
-    <!-- Job para facturación -->
+    <!-- ❌ Trigger para facturación (DESHABILITADO) -->
+    <!--
     <bean id="triggerFacturacion" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
         <property name="jobDetail" ref="jobFacturacion" />
         <property name="cronExpression" value="${facturacion.cron.exp}" />
         <property name="misfireInstructionName" value="MISFIRE_INSTRUCTION_DO_NOTHING" />
     </bean>
+    -->
 
     <!-- JobFactory que permite inyección de dependencias -->
     <bean id="jobFactory" class="com.creditienda.config.AutowiringSpringBeanJobFactory" />
 
     <!-- Scheduler con JobFactory -->
     <bean class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
-        <!-- Graceful shutdown: esperar a que terminen los jobs en shutdown -->
         <property name="waitForJobsToCompleteOnShutdown" value="true" />
         <property name="jobFactory" ref="jobFactory" />
+
         <property name="triggers">
             <list>
-                <ref bean="triggerFacturacion" />
+                <!-- ❌ <ref bean="triggerFacturacion" /> -->
                 <ref bean="triggerEstafeta" />
-
             </list>
         </property>
-        <!-- Ajustes básicos de Quartz (thread pool) -->
+
         <property name="quartzProperties">
             <props>
-                <!-- Ajusta según carga; 5 es un punto de partida razonable -->
                 <prop key="org.quartz.threadPool.threadCount">5</prop>
-
-                <!-- Opcional: activar si vas a correr en cluster (requiere DB JobStore) -->
-                <!--
-            <prop key="org.quartz.jobStore.class">org.quartz.impl.jdbcjobstore.JobStoreTX</prop>
-            <prop key="org.quartz.jobStore.isClustered">true</prop>
-            -->
             </props>
         </property>
     </bean>
