@@ -1,0 +1,223 @@
+Listado de rutas de carpetas para el volumen Windows
+El número de serie del volumen es B8F8-1199
+C:.
+¦   estructura.txt
+¦   
++---java
+¦   +---com
+¦       +---creditienda
+¦           ¦   DemoApplication.java
+¦           ¦   
+¦           +---config
+¦           ¦       AccessTokenFilter.java
+¦           ¦       AutowiringSpringBeanJobFactory.java
+¦           ¦       RestTemplateConfig.java
+¦           ¦       SecurityConfig.java
+¦           ¦       ShopifyProperties.java
+¦           ¦       
+¦           +---controller
+¦           ¦   ¦   EnvironmentController.java
+¦           ¦   ¦   HelloController.java
+¦           ¦   ¦   ProtectedController.java
+¦           ¦   ¦   PublicStatusController.java
+¦           ¦   ¦   ShopifyProductController.java
+¦           ¦   ¦   ShopifyWebhookController.java
+¦           ¦   ¦   
+¦           ¦   +---auth
+¦           ¦   ¦       AuthController.java
+¦           ¦   ¦       
+¦           ¦   +---delivery
+¦           ¦   ¦       DeliveryTrackingController.java
+¦           ¦   ¦       
+¦           ¦   +---estafeta
+¦           ¦   ¦       CoberturaEstafetaController.java
+¦           ¦   ¦       GuiaEstafetaController.java
+¦           ¦   ¦       HistorialEstafetaController.java
+¦           ¦   ¦       SeguroEstafetaController.java
+¦           ¦   ¦       
+¦           ¦   +---log
+¦           ¦   ¦       LogController.java
+¦           ¦   ¦       
+¦           ¦   +---shopify
+¦           ¦   ¦       ShopifyOrdenController.java
+¦           ¦   ¦       ShopifyProductoController.java
+¦           ¦   ¦       ShopifyProductosBulkController.java
+¦           ¦   ¦       ShopifySyncController.java
+¦           ¦   ¦       ShopifyUpsertProductoController.java
+¦           ¦   ¦       WebhookController.java
+¦           ¦   ¦       
+¦           ¦   +---skydropx
+¦           ¦   ¦       SkyDropXQuotationController.java
+¦           ¦   ¦       SkyDropXWebhookController.java
+¦           ¦   ¦       
+¦           ¦   +---timbrado
+¦           ¦   ¦       TimbradoDirectController.java
+¦           ¦   ¦       
+¦           ¦   +---web
+¦           ¦           AuthWebController.java
+¦           ¦           UploadController.java
+¦           ¦           
+¦           +---demo
+¦           +---dto
+¦           ¦   ¦   CoberturaRequest.java
+¦           ¦   ¦   ImageDTO.java
+¦           ¦   ¦   OptionDTO.java
+¦           ¦   ¦   ProductoShopifyDTO.java
+¦           ¦   ¦   RangoFechasDTO.java
+¦           ¦   ¦   VariantDTO.java
+¦           ¦   ¦   
+¦           ¦   +---common
+¦           ¦   ¦       ErrorResponseDTO.java
+¦           ¦   ¦       
+¦           ¦   +---delivery
+¦           ¦   ¦       B2BActualizarEstatusEntregaDTO.java
+¦           ¦   ¦       B2BActualizarEstatusResponseDTO.java
+¦           ¦   ¦       B2BSeguimientoEntregaOrdenDTO.java
+¦           ¦   ¦       B2BSeguimientoEntregaResponseDTO.java
+¦           ¦   ¦       EstatusDeliveryDTO.java
+¦           ¦   ¦       EstatusOdcDTO.java
+¦           ¦   ¦       FacturacionResponse.java
+¦           ¦   ¦       
+¦           ¦   +---estafeta
+¦           ¦   ¦   +---guia
+¦           ¦   ¦   ¦       AddressDTO.java
+¦           ¦   ¦   ¦       ContactDTO.java
+¦           ¦   ¦   ¦       DestinationDTO.java
+¦           ¦   ¦   ¦       HomeAddressDTO.java
+¦           ¦   ¦   ¦       IdentificationDTO.java
+¦           ¦   ¦   ¦       InsuranceDTO.java
+¦           ¦   ¦   ¦       ItemDescriptionDTO.java
+¦           ¦   ¦   ¦       LabelDefinitionDTO.java
+¦           ¦   ¦   ¦       LocationDTO.java
+¦           ¦   ¦   ¦       OriginDTO.java
+¦           ¦   ¦   ¦       ReturnDocumentDTO.java
+¦           ¦   ¦   ¦       ServiceConfigurationDTO.java
+¦           ¦   ¦   ¦       SystemInformationDTO.java
+¦           ¦   ¦   ¦       WayBillDocumentDTO.java
+¦           ¦   ¦   ¦       WayBillRequestDTO.java
+¦           ¦   ¦   ¦       
+¦           ¦   ¦   +---seguro
+¦           ¦   ¦           EstafetaSeguroResponseDTO.java
+¦           ¦   ¦           
+¦           ¦   +---shopify
+¦           ¦   ¦       ProductoActualizarDTO.java
+¦           ¦   ¦       ProductoConsultaIdsDTO.java
+¦           ¦   ¦       ProductosLoteRequestDTO.java
+¦           ¦   ¦       RespuestaActualizacionDTO.java
+¦           ¦   ¦       RespuestaLoteBulkDTO.java
+¦           ¦   ¦       RespuestaLoteDTO.java
+¦           ¦   ¦       ShopifyProductUpsertDTO.java
+¦           ¦   ¦       
+¦           ¦   +---skydropx
+¦           ¦   ¦       SkyDropXQuotationRequestDTO.java
+¦           ¦   ¦       SkyDropXQuotationResponseDTO.java
+¦           ¦   ¦       
+¦           ¦   +---timbrado
+¦           ¦           CredencialesDTO.java
+¦           ¦           
+¦           +---exception
+¦           ¦       ShopifyException.java
+¦           ¦       
+¦           +---job
+¦           ¦       EstafetaJob.java
+¦           ¦       FacturacionJob.java
+¦           ¦       TimbradoJob.java
+¦           ¦       
+¦           +---model
+¦           ¦   ¦   ErrorInfo.java
+¦           ¦   ¦   EstafetaResponse.java
+¦           ¦   ¦   Information.java
+¦           ¦   ¦   
+¦           ¦   +---timbrado
+¦           ¦           Cab.java
+¦           ¦           Det.java
+¦           ¦           Dir.java
+¦           ¦           Documento.java
+¦           ¦           Hdr.java
+¦           ¦           Infglo.java
+¦           ¦           Mon.java
+¦           ¦           Tex.java
+¦           ¦           TicketDoc.java
+¦           ¦           Tra.java
+¦           ¦           
+¦           +---security
+¦           ¦       JwtUtil.java
+¦           ¦       
+¦           +---service
+¦           ¦   ¦   EstafetaCoberturaClient.java
+¦           ¦   ¦   EstafetaGuiaClient.java
+¦           ¦   ¦   EstafetaSeguroClient.java
+¦           ¦   ¦   EstafetHistorialClient.java
+¦           ¦   ¦   ShopifyProductService.java
+¦           ¦   ¦   TimbradoClient.java
+¦           ¦   ¦   
+¦           ¦   +---b2b
+¦           ¦   ¦       B2BDeliveryClient.java
+¦           ¦   ¦       B2BService.java
+¦           ¦   ¦       B2BTokenService.java
+¦           ¦   ¦       
+¦           ¦   +---complemento
+¦           ¦   ¦       ComplementoPagoBatchService.java
+¦           ¦   ¦       ComplementoPagoService.java
+¦           ¦   ¦       
+¦           ¦   +---delivery
+¦           ¦   ¦   ¦   DeliveryTrackingDAOService.java
+¦           ¦   ¦   ¦   DeliveryTrackingService.java
+¦           ¦   ¦   ¦   TrackingOrchestratorService.java
+¦           ¦   ¦   ¦   
+¦           ¦   ¦   +---core
+¦           ¦   ¦   ¦       DeliveryCoreService.java
+¦           ¦   ¦   ¦       
+¦           ¦   ¦   +---dao
+¦           ¦   ¦   ¦       DeliveryDAO.java
+¦           ¦   ¦   ¦       
+¦           ¦   ¦   +---mapper
+¦           ¦   +---facturacion
+¦           ¦   ¦       DeliveryFacturacionService.java
+¦           ¦   ¦       
+¦           ¦   +---notificacion
+¦           ¦   ¦       NotificacionService.java
+¦           ¦   ¦       
+¦           ¦   +---shopify
+¦           ¦   ¦       HmacValidator.java
+¦           ¦   ¦       ShopifyActualizarProductoService.java
+¦           ¦   ¦       ShopifyProcesarOrderService.java
+¦           ¦   ¦       ShopifyProductosBulkService.java
+¦           ¦   ¦       ShopifyUpsertProductoService.java
+¦           ¦   ¦       
+¦           ¦   +---skydropx
+¦           ¦   ¦   ¦   SkyDropXQuotationService.java
+¦           ¦   ¦   ¦   SkyDropXTokenService.java
+¦           ¦   ¦   ¦   SkyDropXWebhookService.java
+¦           ¦   ¦   ¦   
+¦           ¦   ¦   +---mapper
+¦           ¦   ¦           SkyDropXQuotationMapper.java
+¦           ¦   ¦           
+¦           ¦   +---timbrado
+¦           ¦           TimbradoJsonDirectService.java
+¦           ¦           
+¦           +---util
+¦               ¦   EmailUtil.java
+¦               ¦   ShopifyOrderMapper.java
+¦               ¦   ShopifyPlantillaCampos.java
+¦               ¦   TokenProvider.java
+¦               ¦   XmlUtil.java
+¦               ¦   
+¦               +---constantes
+¦                       EstatusCve.java
+¦                       
++---resources
+    ¦   application-dev.properties
+    ¦   log4j2.properties
+    ¦   quartz-config.xml
+    ¦   
+    +---static
+        ¦   login.html
+        ¦   upload.html
+        ¦   
+        +---css
+        ¦       style.css
+        ¦       
+        +---js
+                upload.js
+                
