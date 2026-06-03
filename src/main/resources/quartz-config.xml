@@ -8,6 +8,20 @@
     <!-- Escaneo de componentes -->
     <context:component-scan base-package="com.creditienda" />
 
+    <!-- ❌ Job Recovery SkyDropX (DESHABILITADO) -->
+    <!--
+    <bean id="jobSkyDropXRecovery" class="org.springframework.scheduling.quartz.JobDetailFactoryBean">
+        <property name="jobClass" value="com.creditienda.job.SkyDropXRecoveryJob" />
+        <property name="durability" value="true" />
+    </bean>
+
+    <bean id="triggerSkyDropXRecovery" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <property name="jobDetail" ref="jobSkyDropXRecovery" />
+        <property name="cronExpression" value="${skydropx.recovery.cron.exp}" />
+        <property name="misfireInstructionName" value="MISFIRE_INSTRUCTION_DO_NOTHING" />
+    </bean>
+    -->
+
     <!-- Job Estafeta -->
     <bean id="jobEstafeta" class="org.springframework.scheduling.quartz.JobDetailFactoryBean">
         <property name="jobClass" value="com.creditienda.job.EstafetaJob" />
@@ -49,6 +63,7 @@
             <list>
                 <!-- ❌ <ref bean="triggerFacturacion" /> -->
                 <ref bean="triggerEstafeta" />
+                <!-- ❌ <ref bean="triggerSkyDropXRecovery" /> -->
             </list>
         </property>
 

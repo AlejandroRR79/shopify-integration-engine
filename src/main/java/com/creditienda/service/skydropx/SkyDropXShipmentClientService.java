@@ -8,6 +8,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import com.creditienda.dto.skydropx.SkyDropXShipmentResponseDTO;
@@ -15,55 +16,105 @@ import com.creditienda.dto.skydropx.SkyDropXShipmentResponseDTO;
 @Service
 public class SkyDropXShipmentClientService {
 
-    private static final Logger log = LogManager.getLogger(
-            SkyDropXShipmentClientService.class);
+        private static final Logger log = LogManager.getLogger(
+                        SkyDropXShipmentClientService.class);
 
-    @Value("${skydropx.base-url}")
-    private String baseUrl;
+        @Value("${skydropx.base-url}")
+        private String baseUrl;
 
-    private final RestTemplate restTemplate;
+        private final RestTemplate restTemplate;
 
-    private final SkyDropXTokenService skyDropXTokenService;
+        private final SkyDropXTokenService skyDropXTokenService;
 
-    public SkyDropXShipmentClientService(
-            RestTemplate restTemplate,
-            SkyDropXTokenService skyDropXTokenService) {
+        public SkyDropXShipmentClientService(
+                        RestTemplate restTemplate,
+                        SkyDropXTokenService skyDropXTokenService) {
 
-        this.restTemplate = restTemplate;
-        this.skyDropXTokenService = skyDropXTokenService;
-    }
+                this.restTemplate = restTemplate;
+                this.skyDropXTokenService = skyDropXTokenService;
+        }
 
-    /**
-     * Obtener shipment.
-     */
-    public SkyDropXShipmentResponseDTO getShipment(
-            String shipmentId) {
+        /**
+         * Obtener shipment SkyDropX.
+         *
+         * Incluye:
+         * - token cache
+         * - invalidación automática
+         * - retry simple 401
+         */
+        public SkyDropXShipmentResponseDTO getShipment(
+                        String shipmentId) {
 
-        String token = skyDropXTokenService
-                .getAccessToken();
+                String url = baseUrl
+                                + "/api/v1/shipments/"
+                                + shipmentId;
 
-        HttpHeaders headers = new HttpHeaders();
+                log.info(
+                                "[SKYDROPX-GET-SHIPMENT] shipmentId={} url={}",
+                                shipmentId,
+                                url);
 
-        headers.setBearerAuth(
-                token);
+                /**
+                 * Primer intento.
+                 */
+                try {
 
-        HttpEntity<Void> entity = new HttpEntity<>(
-                headers);
+                        return executeRequest(
+                                        shipmentId,
+                                        url);
 
-        String url = baseUrl
-                + "/api/v1/shipments/"
-                + shipmentId;
+                } catch (HttpClientErrorException.Unauthorized ex) {
 
-        log.info(
-                "[SKYDROPX-GET-SHIPMENT] url={}",
-                url);
+                        /**
+                         * Token expirado/inválido.
+                         */
+                        log.warn(
+                                        "[SKYDROPX-GET-SHIPMENT] token expirado shipmentId={} retrying...",
+                                        shipmentId);
 
-        ResponseEntity<SkyDropXShipmentResponseDTO> response = restTemplate.exchange(
-                url,
-                HttpMethod.GET,
-                entity,
-                SkyDropXShipmentResponseDTO.class);
+                        /**
+                         * Invalidar cache token.
+                         */
+                        skyDropXTokenService.invalidateToken();
 
-        return response.getBody();
-    }
+                        /**
+                         * Reintentar UNA vez.
+                         */
+                        return executeRequest(
+                                        shipmentId,
+                                        url);
+                }
+        }
+
+        /**
+         * Ejecutar request shipment.
+         */
+        private SkyDropXShipmentResponseDTO executeRequest(
+                        String shipmentId,
+                        String url) {
+
+                String token = skyDropXTokenService
+                                .getAccessToken();
+
+                HttpHeaders headers = new HttpHeaders();
+
+                headers.setBearerAuth(
+                                token);
+
+                HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+                ResponseEntity<SkyDropXShipmentResponseDTO> response = restTemplate.exchange(
+                                url,
+                                HttpMethod.GET,
+                                entity,
+                                SkyDropXShipmentResponseDTO.class);
+
+                SkyDropXShipmentResponseDTO body = response.getBody();
+
+                log.info(
+                                "[SKYDROPX-GET-SHIPMENT] shipmentId={} shipment obtenido correctamente",
+                                shipmentId);
+
+                return body;
+        }
 }
