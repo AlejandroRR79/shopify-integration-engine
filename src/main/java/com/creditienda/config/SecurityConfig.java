@@ -29,6 +29,21 @@ public class SecurityConfig {
                                                                 "/auth/**",
                                                                 "/api/webhook/**")
                                                 .permitAll()
+                                                // =========================================
+                                                // SKYDROPX WEBHOOK
+                                                // =========================================
+
+                                                .requestMatchers(
+                                                                "/api/webhook/skydropx/**")
+                                                .permitAll()
+
+                                                // =========================================
+                                                // SKYDROPX SECURE
+                                                // =========================================
+
+                                                .requestMatchers(
+                                                                "/api/secure/skydropx/**")
+                                                .authenticated()
 
                                                 .requestMatchers("/auth/**").permitAll()
                                                 .requestMatchers("/api/public/**").permitAll()

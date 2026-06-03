@@ -51,7 +51,8 @@ logs/
 .env.*
 
 ### IA / CONFIG LOCAL (🔥 tu problema)
-Claude.md
+CLAUDE.md
+docs/
 
 ### PROPERTIES ###
 # Ignorar todos los .properties

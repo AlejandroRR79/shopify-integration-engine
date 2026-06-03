@@ -117,7 +117,47 @@ public class EnvironmentController {
                 "app.build.name",
                 "app.build.version",
                 "app.build.date",
-                "tracking.mode"
+                "tracking.mode",
+
+                // ───────── SkyDropX ─────────
+                "skydropx.base-url",
+                "skydropx.auth-url",
+                "skydropx.client-id",
+                "skydropx.client-secret",
+                "skydropx.grant-type",
+                "skydropx.requested-carriers",
+                "skydropx.timeout-ms",
+                "skydropx.token-refresh-buffer",
+                "skydropx.auth.token-expiration-seconds",
+                "skydropx.shipment.polling.max-attempts",
+                "skydropx.shipment.polling.delay-seconds",
+                "skydropx.quotation.polling.max-attempts",
+                "skydropx.quotation.polling.delay-seconds",
+                "skydropx.recovery.cron.exp",
+                "skydropx.recovery.stuck-minutes",
+                "skydropx.recovery.max-retries",
+                "skydropx.selection.priority",
+                "skydropx.selection.allowed-service-types",
+                "skydropx.shipment.printing-format",
+                "skydropx.shipment.package-type",
+                "skydropx.shipment.country-code",
+                "guia.prelacion",
+
+                // ───────── Multi-tienda Shopify ─────────
+                "shopify.stores[0].alias",
+                "shopify.stores[0].domain",
+                "shopify.stores[0].api-version",
+                "shopify.stores[0].auth-type",
+                "shopify.stores[0].access-token",
+                "shopify.stores[0].bulk-chunk-size",
+                "shopify.stores[1].alias",
+                "shopify.stores[1].domain",
+                "shopify.stores[1].api-version",
+                "shopify.stores[1].auth-type",
+                "shopify.stores[1].client-id",
+                "shopify.stores[1].client-secret",
+                "shopify.stores[1].token-url",
+                "shopify.stores[1].bulk-chunk-size"
 
         };
 

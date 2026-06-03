@@ -62,7 +62,7 @@ public class B2BTokenService {
         HttpEntity<String> entity = new HttpEntity<>(jsonBody, headers);
 
         // Logs detallados
-        logger.info("➡️ Payload enviado: {}", jsonBody);
+        // logger.info("➡️ Payload enviado: {}", jsonBody);
         logger.info("➡️ Headers enviados: {}", headers.toSingleValueMap());
 
         ResponseEntity<Map> response;

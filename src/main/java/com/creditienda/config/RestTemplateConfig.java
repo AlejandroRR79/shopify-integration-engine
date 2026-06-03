@@ -20,8 +20,8 @@ public class RestTemplateConfig {
         // Pool de conexiones
         PoolingHttpClientConnectionManager cm = new PoolingHttpClientConnectionManager();
 
-        cm.setMaxTotal(50);
-        cm.setDefaultMaxPerRoute(20);
+        cm.setMaxTotal(100);
+        cm.setDefaultMaxPerRoute(50);
 
         // Timeouts + desactivar Expect: 100-continue
         RequestConfig requestConfig = RequestConfig.custom()
