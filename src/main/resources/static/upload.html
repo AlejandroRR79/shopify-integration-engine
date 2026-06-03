@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Upload</title>
+    <link rel="stylesheet" href="/css/style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+    <script defer src="/js/upload.js"></script>
+</head>
+
+<body>
+    <div class="card">
+        <h2>Cargar archivo</h2>
+        <form id="uploadForm">
+            <input type="file" id="fileInput" name="file" required />
+            <div class="buttons">
+                <button type="submit">Subir seleccionados</button>
+                <button id="uploadAllBtn" type="button">Cargar archivo completo</button>
+                <button id="logoutBtn" type="button">Cerrar sesión</button>
+            </div>
+        </form>
+        <div id="status"></div>
+    </div>
+
+    <div class="preview-container">
+        <h3>Archivo cargado</h3>
+
+        <!-- Barra de filtro -->
+        <div id="filterBar">
+            <label for="fechaFiltro"><strong>Filtrar por fecha de pago:</strong></label>
+            <select id="fechaFiltro">
+                <option value="__all__">Todas</option>
+            </select>
+        </div>
+
+        <!-- Contadores -->
+        <div id="counters">
+            <span id="countShown">Registros mostrados: 0</span> |
+            <span id="countSelected">Registros seleccionados: 0</span>
+        </div>
+
+        <!-- Vista previa -->
+        <div id="preview"></div>
+    </div>
+</body>
+
+</html>

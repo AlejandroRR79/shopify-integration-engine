@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:context="http://www.springframework.org/schema/context"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+                        http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd">
+
+    <!-- Escaneo de componentes -->
+    <context:component-scan base-package="com.creditienda" />
+
+    <!-- ❌ Job Recovery SkyDropX (DESHABILITADO) -->
+    <!--
+    <bean id="jobSkyDropXRecovery" class="org.springframework.scheduling.quartz.JobDetailFactoryBean">
+        <property name="jobClass" value="com.creditienda.job.SkyDropXRecoveryJob" />
+        <property name="durability" value="true" />
+    </bean>
+
+    <bean id="triggerSkyDropXRecovery" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <property name="jobDetail" ref="jobSkyDropXRecovery" />
+        <property name="cronExpression" value="${skydropx.recovery.cron.exp}" />
+        <property name="misfireInstructionName" value="MISFIRE_INSTRUCTION_DO_NOTHING" />
+    </bean>
+    -->
+
+    <!-- Job Estafeta -->
+    <bean id="jobEstafeta" class="org.springframework.scheduling.quartz.JobDetailFactoryBean">
+        <property name="jobClass" value="com.creditienda.job.EstafetaJob" />
+        <property name="durability" value="true" />
+    </bean>
+
+    <!-- ❌ Job para facturación (DESHABILITADO) -->
+    <!--
+    <bean id="jobFacturacion" class="org.springframework.scheduling.quartz.JobDetailFactoryBean">
+        <property name="jobClass" value="com.creditienda.job.FacturacionJob" />
+        <property name="durability" value="true" />
+    </bean>
+    -->
+
+    <bean id="triggerEstafeta" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <property name="jobDetail" ref="jobEstafeta" />
+        <property name="cronExpression" value="${estafeta.cron.exp}" />
+        <property name="misfireInstructionName" value="MISFIRE_INSTRUCTION_DO_NOTHING" />
+    </bean>
+
+    <!-- ❌ Trigger para facturación (DESHABILITADO) -->
+    <!--
+    <bean id="triggerFacturacion" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <property name="jobDetail" ref="jobFacturacion" />
+        <property name="cronExpression" value="${facturacion.cron.exp}" />
+        <property name="misfireInstructionName" value="MISFIRE_INSTRUCTION_DO_NOTHING" />
+    </bean>
+    -->
+
+    <!-- JobFactory que permite inyección de dependencias -->
+    <bean id="jobFactory" class="com.creditienda.config.AutowiringSpringBeanJobFactory" />
+
+    <!-- Scheduler con JobFactory -->
+    <bean class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
+        <property name="waitForJobsToCompleteOnShutdown" value="true" />
+        <property name="jobFactory" ref="jobFactory" />
+
+        <property name="triggers">
+            <list>
+                <!-- ❌ <ref bean="triggerFacturacion" /> -->
+                <ref bean="triggerEstafeta" />
+                <!-- ❌ <ref bean="triggerSkyDropXRecovery" /> -->
+            </list>
+        </property>
+
+        <property name="quartzProperties">
+            <props>
+                <prop key="org.quartz.threadPool.threadCount">5</prop>
+            </props>
+        </property>
+    </bean>
+
+</beans>

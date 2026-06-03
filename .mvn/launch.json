@@ -1,0 +1,21 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "java",
+      "name": "Current File",
+      "request": "launch",
+      "mainClass": "${file}"
+    },
+      {
+        "type": "java",
+        "name": "DemoApplication (Dev)",
+        "request": "launch",
+        "mainClass": "com.creditienda.demo.DemoApplication",
+        "projectName": "shopify-integration-engine",
+        "args": [
+          "--spring.profiles.active=dev"
+
+      }
+  ]
+}

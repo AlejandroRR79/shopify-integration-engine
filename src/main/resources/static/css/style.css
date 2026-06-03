@@ -1,0 +1,141 @@
+body {
+    font-family: "Segoe UI", Arial, sans-serif;
+    background: linear-gradient(135deg, #004080, #0073e6);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    padding: 20px;
+}
+
+/* Card centrada */
+.card {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+    width: 400px;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+h2,
+h3 {
+    margin-bottom: 15px;
+    color: #004080;
+}
+
+/* Inputs */
+input[type="text"],
+input[type="password"],
+input[type="file"] {
+    width: 100%;
+    padding: 10px;
+    margin: 8px 0;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+/* Botones */
+.buttons {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 15px;
+}
+
+button {
+    flex: 1;
+    padding: 10px;
+    background: #0073e6;
+    border: none;
+    border-radius: 4px;
+    color: #fff;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.3s;
+    margin: 0 5px;
+}
+
+button:hover {
+    background: #005bb5;
+}
+
+/* Mensajes */
+.error {
+    margin-top: 15px;
+    color: #b00020;
+    font-weight: bold;
+    background: #ffe5e5;
+    padding: 10px;
+    border-radius: 4px;
+}
+
+.success {
+    margin-top: 15px;
+    color: #0b7;
+    font-weight: bold;
+    background: #e5ffe5;
+    padding: 10px;
+    border-radius: 4px;
+}
+
+/* Preview */
+.preview-container {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+    width: 95%;
+    max-width: 1400px;
+    overflow-x: auto;
+}
+
+#preview table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: auto;
+}
+
+#preview th,
+#preview td {
+    border: 1px solid #ccc;
+    padding: 10px;
+    text-align: left;
+    font-size: 14px;
+    white-space: nowrap;
+}
+
+#preview th {
+    background: #f0f8ff;
+    color: #004080;
+    font-weight: bold;
+}
+
+/* Observación input dentro de la tabla */
+#preview input[type="text"] {
+    width: 95%;
+    padding: 6px;
+    font-size: 13px;
+}
+
+/* Colores por grupo */
+.group-0 {
+    background-color: #f9f9f9;
+}
+
+.group-1 {
+    background-color: #eef6ff;
+}
+
+.group-2 {
+    background-color: #f6ffef;
+}
+
+.group-3 {
+    background-color: #fff6ef;
+}
+
+.group-4 {
+    background-color: #fef6ff;
+}

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Login</title>
+    <link rel="stylesheet" href="/css/style.css" />
+</head>
+
+<body>
+    <div class="container">
+        <h2>Acceso al sistema</h2>
+        <form id="loginForm">
+            <input type="text" id="username" placeholder="Usuario" required />
+            <input type="password" id="password" placeholder="Contraseña" required />
+            <button type="submit">Entrar</button>
+        </form>
+        <div id="status"></div>
+    </div>
+
+    <script>
+        document.getElementById("loginForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const username = document.getElementById("username").value.trim();
+            const password = document.getElementById("password").value;
+            const statusDiv = document.getElementById("status");
+
+            try {
+                // Enviamos credenciales como query params porque el controller usa @RequestParam
+                const res = await fetch(`/auth/web/login?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`, {
+                    method: "POST"
+                });
+
+                let data = {};
+                try {
+                    data = await res.json();
+                } catch (err) {
+                    // si no hay cuerpo JSON, dejamos data vacío
+                }
+
+                if (res.ok) {
+                    // Guardamos el token JWT en localStorage
+                    if (data.token) {
+                        localStorage.setItem("authToken", data.token);
+                    }
+                    statusDiv.textContent = "Login exitoso, redirigiendo...";
+                    statusDiv.className = "success";
+                    setTimeout(() => window.location.href = "/upload.html", 1500);
+                } else {
+                    statusDiv.textContent = data.error || "Usuario o contraseña incorrectos";
+                    statusDiv.className = "error";
+                }
+            } catch (err) {
+                statusDiv.textContent = "Error de conexión con el servidor";
+                statusDiv.className = "error";
+            }
+        });
+    </script>
+</body>
+
+</html>
