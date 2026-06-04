@@ -21,6 +21,7 @@ import com.creditienda.service.skydropx.dao.SkyDropXProcessDAO;
 import com.creditienda.service.skydropx.mapper.SkyDropXShipmentMapper;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
 
 /**
  * Servicio encargado de generar
@@ -56,6 +57,8 @@ public class SkyDropXShipmentService {
 
         private final NotificacionService notificacionService;
         private final SkyDropXProcessDAO skyDropXProcessDAO;
+        private final ObjectMapper objectMapper;
+        private final ObjectWriter prettyWriter;
 
         public SkyDropXShipmentService(
                         RestTemplate restTemplate,
@@ -65,7 +68,8 @@ public class SkyDropXShipmentService {
                         SkyDropXShipmentPollingService skyDropXShipmentPollingService,
                         SkyDropXLabelDownloadService skyDropXLabelDownloadService,
                         NotificacionService notificacionService,
-                        SkyDropXProcessDAO skyDropXProcessDAO) {
+                        SkyDropXProcessDAO skyDropXProcessDAO,
+                        ObjectMapper objectMapper) {
 
                 this.restTemplate = restTemplate;
 
@@ -81,6 +85,8 @@ public class SkyDropXShipmentService {
 
                 this.notificacionService = notificacionService;
                 this.skyDropXProcessDAO = skyDropXProcessDAO;
+                this.objectMapper = objectMapper;
+                this.prettyWriter = objectMapper.writerWithDefaultPrettyPrinter();
         }
 
         /**
@@ -122,12 +128,10 @@ public class SkyDropXShipmentService {
                                         shipmentRequest,
                                         headers);
 
-                        ObjectMapper mapper = new ObjectMapper();
-
                         /**
                          * Debug payload shipment.
                          */
-                        String requestJson = mapper.writerWithDefaultPrettyPrinter()
+                        String requestJson = prettyWriter
                                         .writeValueAsString(
                                                         shipmentRequest);
 
@@ -160,7 +164,7 @@ public class SkyDropXShipmentService {
                          * OBTENER SHIPMENT ID
                          * =====================================
                          */
-                        JsonNode root = mapper.readTree(
+                        JsonNode root = objectMapper.readTree(
                                         response.getBody());
 
                         String shipmentId = root.path("data")
@@ -208,12 +212,17 @@ public class SkyDropXShipmentService {
                                         "[SKYDROPX-SHIPMENT] labelUrl={}",
                                         labelUrl);
 
-                        String shipmentRawJson = mapper
-                                        .writerWithDefaultPrettyPrinter()
+                        String shipmentRawJson = prettyWriter
                                         .writeValueAsString(
                                                         shipmentResponse);
 
-                        skyDropXProcessDAO.updateShipment(
+                        /**
+                         * =====================================
+                         * PERSISTIR EN BD (TRANSACCIÓN ATÓMICA)
+                         * updateShipment + updateShopifyOrderGuia + markCompleted
+                         * =====================================
+                         */
+                        skyDropXProcessDAO.completeShipmentAndOrder(
                                         quotationId,
                                         shipmentId,
                                         shipmentRawJson,
@@ -221,13 +230,13 @@ public class SkyDropXShipmentService {
                                         labelUrl);
 
                         log.info(
-                                        "[SKYDROPX-PROCESS] SHIPMENT_COMPLETED persistido shipmentId={}, trackingNumber={}",
-                                        shipmentId,
+                                        "[SKYDROPX-PROCESS] COMPLETED quotationId={} trackingNumber={}",
+                                        quotationId,
                                         shipmentResponse.getTrackingNumber());
 
                         /**
                          * =====================================
-                         * DESCARGAR PDF
+                         * DESCARGAR PDF (fuera de transacción)
                          * =====================================
                          */
                         if (labelUrl != null
@@ -251,12 +260,6 @@ public class SkyDropXShipmentService {
                                 log.warn(
                                                 "[SKYDROPX-SHIPMENT] labelUrl vacío");
                         }
-
-                        skyDropXProcessDAO.markCompleted(quotationId);
-
-                        log.info(
-                                        "[SKYDROPX-PROCESS] COMPLETED quotationId={}",
-                                        quotationId);
 
                 } catch (SkyDropXProcessSupersededException pse) {
 

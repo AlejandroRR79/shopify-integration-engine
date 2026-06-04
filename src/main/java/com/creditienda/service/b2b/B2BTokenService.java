@@ -32,13 +32,24 @@ public class B2BTokenService {
     @Value("${b2b.oc.auth.password}")
     private String ocPassword;
 
+    private static final long TOKEN_TTL_MS = 55 * 60 * 1000L; // 55 minutos
+
+    private volatile String cachedToken;
+    private volatile long tokenExpiration = 0L;
+
     private final RestTemplate restTemplate;
 
     public B2BTokenService(RestTemplate restTemplate) {
         this.restTemplate = restTemplate;
     }
 
-    public String obtenerTokenOC() {
+    public synchronized String obtenerTokenOC() {
+
+        if (cachedToken != null && System.currentTimeMillis() < tokenExpiration) {
+            logger.debug("🔐 Token B2B reutilizado de caché");
+            return cachedToken;
+        }
+
         logger.info("🔐 Iniciando solicitud de token B2B para registro de OC");
         logger.info("🔐 URL: {}", ocAuthUrl);
         logger.info("🔐 Credenciales usadas: usuario={}, empresa={}", ocUsuario, ocEmpresa);
@@ -79,6 +90,8 @@ public class B2BTokenService {
             Object data = response.getBody().get("data");
             if (data instanceof Map<?, ?> map && map.get("accessToken") instanceof String token) {
                 logger.info("🔐 Token B2B OC obtenido correctamente");
+                cachedToken = token;
+                tokenExpiration = System.currentTimeMillis() + TOKEN_TTL_MS;
                 return token;
             } else {
                 logger.warn("⚠️ Estructura inesperada en respuesta B2B OC: {}", response.getBody());

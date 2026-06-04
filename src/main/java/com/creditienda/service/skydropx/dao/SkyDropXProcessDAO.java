@@ -29,7 +29,20 @@ public interface SkyDropXProcessDAO {
                         String trackingNumber,
                         String labelUrl);
 
+        void completeShipmentAndOrder(
+                        String quotationId,
+                        String shipmentId,
+                        String shipmentRawJson,
+                        String trackingNumber,
+                        String labelUrl);
+
         void markCompleted(String quotationId);
+
+        void updateShopifyOrderGuia(
+                        String quotationId,
+                        String waybill,
+                        String trackingCode,
+                        String rutaGuia);
 
         void markFailed(
                         String quotationId,

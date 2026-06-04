@@ -125,6 +125,7 @@ public class ShopifyProductUpsertDTO {
     public static class ImageDTO {
         private String src;
         private int position;
+        @com.fasterxml.jackson.annotation.JsonProperty("alt")
         private String altText;
 
         public String getSrc() {

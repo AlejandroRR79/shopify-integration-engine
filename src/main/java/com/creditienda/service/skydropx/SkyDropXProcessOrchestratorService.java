@@ -10,6 +10,8 @@ import com.creditienda.dto.skydropx.SkyDropXQuotationResponseDTO.Rate;
 import com.creditienda.service.skydropx.constants.SkyDropXProcessStep;
 import com.creditienda.service.skydropx.constants.SkyDropXProcessSupersededException;
 import com.creditienda.service.skydropx.dao.SkyDropXProcessDAO;
+import com.creditienda.service.skydropx.model.SkyDropXProcessRecord;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
@@ -32,16 +34,21 @@ public class SkyDropXProcessOrchestratorService {
 
         private final SkyDropXProcessDAO skyDropXProcessDAO;
 
+        private final ObjectMapper objectMapper;
+
         public SkyDropXProcessOrchestratorService(
                         SkyDropXRateSelectionService skyDropXRateSelectionService,
                         SkyDropXShipmentService skyDropXShipmentService,
-                        SkyDropXProcessDAO skyDropXProcessDAO) {
+                        SkyDropXProcessDAO skyDropXProcessDAO,
+                        ObjectMapper objectMapper) {
 
                 this.skyDropXRateSelectionService = skyDropXRateSelectionService;
 
                 this.skyDropXShipmentService = skyDropXShipmentService;
 
                 this.skyDropXProcessDAO = skyDropXProcessDAO;
+
+                this.objectMapper = objectMapper;
         }
 
         /**
@@ -92,9 +99,7 @@ public class SkyDropXProcessOrchestratorService {
                                         "[SKYDROPX-ASYNC] selectedRateId={}",
                                         selectedRate.getId());
 
-                        ObjectMapper mapper = new ObjectMapper();
-
-                        String selectedRateJson = mapper
+                        String selectedRateJson = objectMapper
                                         .writerWithDefaultPrettyPrinter()
                                         .writeValueAsString(selectedRate);
 
@@ -139,6 +144,57 @@ public class SkyDropXProcessOrchestratorService {
                         skyDropXProcessDAO.markFailed(
                                         quotationId,
                                         errorMsg);
+                }
+        }
+
+        /**
+         * Retoma desde SHIPMENT_COMPLETED.
+         * El shipment ya existe en SkyDropX — solo persiste en BD.
+         * No llama la API de SkyDropX para evitar crear un shipment duplicado.
+         */
+        @Async("skydropxExecutor")
+        public void recoverFromShipmentCompleted(
+                        SkyDropXProcessRecord record) {
+
+                String quotationId = record.getQuotationId();
+
+                try {
+
+                        log.info(
+                                        "[SKYDROPX-RECOVERY] retomando desde {} quotationId={}",
+                                        SkyDropXProcessStep.SHIPMENT_COMPLETED,
+                                        quotationId);
+
+                        skyDropXProcessDAO.completeShipmentAndOrder(
+                                        quotationId,
+                                        record.getShipmentId(),
+                                        record.getShipmentRawJson(),
+                                        record.getTrackingNumber(),
+                                        record.getLabelUrl());
+
+                        log.info(
+                                        "[SKYDROPX-RECOVERY] SHIPMENT_COMPLETED recuperado quotationId={}",
+                                        quotationId);
+
+                } catch (SkyDropXProcessSupersededException pse) {
+
+                        log.info(
+                                        "[SKYDROPX-RECOVERY] proceso supersedido, abortando quotationId={}",
+                                        quotationId);
+
+                } catch (Exception ex) {
+
+                        log.error(
+                                        "[SKYDROPX-RECOVERY] error en recovery SHIPMENT_COMPLETED quotationId={}",
+                                        quotationId,
+                                        ex);
+
+                        String errorMsg = ex.getMessage();
+                        if (errorMsg != null && errorMsg.length() > 500) {
+                                errorMsg = errorMsg.substring(0, 500);
+                        }
+
+                        skyDropXProcessDAO.markFailed(quotationId, errorMsg);
                 }
         }
 

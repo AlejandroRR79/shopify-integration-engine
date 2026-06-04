@@ -16,6 +16,7 @@ import com.creditienda.dto.estafeta.guia.WayBillRequestDTO;
 import com.creditienda.dto.skydropx.GuiaUnificadaResponseDTO;
 import com.creditienda.dto.skydropx.SkyDropXQuotationProcessResponseDTO;
 import com.creditienda.service.EstafetaGuiaClient;
+import com.creditienda.service.delivery.dao.DeliveryDAO;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -35,14 +36,19 @@ public class GuiaUnificadaService {
 
     private final EstafetaGuiaClient estafetaGuiaClient;
     private final SkyDropXQuotationService skyDropXQuotationService;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final DeliveryDAO deliveryDAO;
+    private final ObjectMapper objectMapper;
 
     public GuiaUnificadaService(
             EstafetaGuiaClient estafetaGuiaClient,
-            SkyDropXQuotationService skyDropXQuotationService) {
+            SkyDropXQuotationService skyDropXQuotationService,
+            DeliveryDAO deliveryDAO,
+            ObjectMapper objectMapper) {
 
         this.estafetaGuiaClient = estafetaGuiaClient;
         this.skyDropXQuotationService = skyDropXQuotationService;
+        this.deliveryDAO = deliveryDAO;
+        this.objectMapper = objectMapper;
     }
 
     public GuiaUnificadaResponseDTO generarGuia(WayBillRequestDTO request) {
@@ -117,10 +123,33 @@ public class GuiaUnificadaService {
             throw new RuntimeException(resultNode.toString());
         }
 
+        actualizarOrdenEstafeta(request, dataNode);
+
         GuiaUnificadaResponseDTO response = new GuiaUnificadaResponseDTO();
         response.setEstafeta(estafetaNode);
         response.setSkydropx(null);
         return response;
+    }
+
+    private void actualizarOrdenEstafeta(WayBillRequestDTO request, JsonNode dataNode) {
+        try {
+            String rawRef = request.getLabelDefinition().getWayBillDocument().getReferenceNumber();
+            String orderNumber = rawRef != null && rawRef.startsWith("ENL")
+                    ? rawRef.substring(3)
+                    : rawRef;
+
+            String waybill = dataNode.path("WayBillDocument").path("WayBillNumber").asText(null);
+
+            if (orderNumber == null || orderNumber.isBlank()) {
+                log.warn("[GUIA-UNIFICADA] referenceNumber vacío, no se actualiza SHOPIFY_ORDER");
+                return;
+            }
+
+            deliveryDAO.updateOrigenPaqueteriaEstafeta(orderNumber, waybill);
+
+        } catch (Exception ex) {
+            log.warn("[GUIA-UNIFICADA] no se pudo actualizar SHOPIFY_ORDER tras Estafeta: {}", ex.getMessage());
+        }
     }
 
     private GuiaUnificadaResponseDTO intentarSkyDropX(WayBillRequestDTO request) {

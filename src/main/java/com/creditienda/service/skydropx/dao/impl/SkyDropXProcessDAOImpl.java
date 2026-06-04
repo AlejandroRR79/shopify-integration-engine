@@ -391,7 +391,8 @@ public class SkyDropXProcessDAOImpl implements SkyDropXProcessDAO {
                 params.addValue("steps", List.of(
                                 SkyDropXProcessStep.QUOTATION_REQUESTED,
                                 SkyDropXProcessStep.QUOTATION_COMPLETED,
-                                SkyDropXProcessStep.RATE_SELECTED));
+                                SkyDropXProcessStep.RATE_SELECTED,
+                                SkyDropXProcessStep.SHIPMENT_COMPLETED));
 
                 params.addValue("maxRetries", maxRetries);
 
@@ -422,6 +423,57 @@ public class SkyDropXProcessDAOImpl implements SkyDropXProcessDAO {
                 jdbcTemplate.update(sql, params);
 
                 log.info("[SKYDROPX-RECOVERY-DAO] retryCount incrementado quotationId={}", quotationId);
+        }
+
+        @Override
+        public void updateShopifyOrderGuia(
+                        String quotationId,
+                        String waybill,
+                        String trackingCode,
+                        String rutaGuia) {
+
+                String sql = "UPDATE so " +
+                                "SET " +
+                                "so.ORIGENPAQUETERIA = 'SKYDROPX', " +
+                                "so.paqueteria = sp.provider, " +
+                                "so.waybill = :waybill, " +
+                                "so.trackingCode = :trackingCode " +
+                                "FROM SHOPIFY_ORDER so " +
+                                "INNER JOIN SKYDROPX_PROCESS sp " +
+                                "ON sp.idShopifyOrder = so.idShopifyOrder " +
+                                "WHERE sp.quotationId = :quotationId";
+
+                MapSqlParameterSource params = new MapSqlParameterSource();
+
+                params.addValue("quotationId", quotationId);
+                params.addValue("waybill", waybill);
+                params.addValue("trackingCode", trackingCode);
+
+                int rows = jdbcTemplate.update(sql, params);
+
+                log.info(
+                                "[SKYDROPX-PROCESS] SHOPIFY_ORDER actualizado quotationId={}, waybill={}, rows={}",
+                                quotationId,
+                                waybill,
+                                rows);
+        }
+
+        @Transactional
+        @Override
+        public void completeShipmentAndOrder(
+                        String quotationId,
+                        String shipmentId,
+                        String shipmentRawJson,
+                        String trackingNumber,
+                        String labelUrl) {
+
+                updateShipment(quotationId, shipmentId, shipmentRawJson, trackingNumber, labelUrl);
+                updateShopifyOrderGuia(quotationId, trackingNumber, trackingNumber, labelUrl);
+                markCompleted(quotationId);
+
+                log.info(
+                                "[SKYDROPX-PROCESS] completeShipmentAndOrder OK quotationId={}",
+                                quotationId);
         }
 
         @Transactional

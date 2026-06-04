@@ -27,14 +27,16 @@ public class SkyDropXRecoveryService {
 
     private final SkyDropXProcessDAO skyDropXProcessDAO;
     private final SkyDropXProcessOrchestratorService orchestratorService;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper;
 
     public SkyDropXRecoveryService(
             SkyDropXProcessDAO skyDropXProcessDAO,
-            SkyDropXProcessOrchestratorService orchestratorService) {
+            SkyDropXProcessOrchestratorService orchestratorService,
+            ObjectMapper objectMapper) {
 
         this.skyDropXProcessDAO = skyDropXProcessDAO;
         this.orchestratorService = orchestratorService;
+        this.objectMapper = objectMapper;
     }
 
     public void ejecutarRecovery() {
@@ -71,6 +73,16 @@ public class SkyDropXRecoveryService {
 
         log.info("[SKYDROPX-RECOVERY] recuperando quotationId={} step={} retryCount={}",
                 quotationId, processStep, record.getRetryCount());
+
+        // SHIPMENT_COMPLETED: el shipment ya existe en SkyDropX.
+        // Solo persiste en BD sin llamar la API externa.
+        if (SkyDropXProcessStep.SHIPMENT_COMPLETED.equals(processStep)) {
+            skyDropXProcessDAO.incrementRetryCount(quotationId);
+            log.info("[SKYDROPX-RECOVERY] lanzando recovery SHIPMENT_COMPLETED → completeShipmentAndOrder quotationId={}",
+                    quotationId);
+            orchestratorService.recoverFromShipmentCompleted(record);
+            return;
+        }
 
         WayBillRequestDTO request = deserializarRequest(record.getRequestJson(), quotationId);
         if (request == null) {

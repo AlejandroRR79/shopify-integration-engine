@@ -191,6 +191,23 @@ public class DeliveryDAO {
                 });
     }
 
+    public void updateOrigenPaqueteriaEstafeta(
+            String orderNumber,
+            String waybill) {
+
+        String sql = """
+                    UPDATE SHOPIFY_ORDER
+                    SET ORIGENPAQUETERIA = 'ESTAFETA',
+                        waybill = ?
+                    WHERE orderNumber = ?
+                """;
+
+        int rows = jdbcTemplate.update(sql, waybill, orderNumber);
+
+        logger.info("[GUIA-UNIFICADA] SHOPIFY_ORDER ORIGENPAQUETERIA=ESTAFETA orderNumber={}, waybill={}, rows={}",
+                orderNumber, waybill, rows);
+    }
+
     public void updateEstatusDelivery(
             B2BActualizarEstatusEntregaDTO dto,
             String cveEstatusOdcNuevo,

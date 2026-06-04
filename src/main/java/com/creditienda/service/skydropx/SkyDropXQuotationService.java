@@ -54,13 +54,16 @@ public class SkyDropXQuotationService {
 
         private final SkyDropXProcessDAO skyDropXProcessDAO;
 
+        private final ObjectMapper objectMapper;
+
         public SkyDropXQuotationService(
                         RestTemplate restTemplate,
                         SkyDropXTokenService skyDropXTokenService,
                         SkyDropXQuotationMapper skyDropXQuotationMapper,
                         NotificacionService notificacionService,
                         SkyDropXProcessOrchestratorService skyDropXProcessOrchestratorService,
-                        SkyDropXProcessDAO skyDropXProcessDAO) {
+                        SkyDropXProcessDAO skyDropXProcessDAO,
+                        ObjectMapper objectMapper) {
 
                 this.restTemplate = restTemplate;
                 this.skyDropXTokenService = skyDropXTokenService;
@@ -68,6 +71,7 @@ public class SkyDropXQuotationService {
                 this.notificacionService = notificacionService;
                 this.skyDropXProcessOrchestratorService = skyDropXProcessOrchestratorService;
                 this.skyDropXProcessDAO = skyDropXProcessDAO;
+                this.objectMapper = objectMapper;
         }
 
         /**
@@ -115,17 +119,15 @@ public class SkyDropXQuotationService {
                                         quotationRequest,
                                         headers);
 
-                        ObjectMapper mapper = new ObjectMapper();
-
                         /**
                          * Serializar payload para logging.
                          */
-                        String quotationRequestJson = mapper
+                        String quotationRequestJson = objectMapper
                                         .writerWithDefaultPrettyPrinter()
                                         .writeValueAsString(
                                                         quotationRequest);
 
-                        String requestJson = mapper
+                        String requestJson = objectMapper
                                         .writerWithDefaultPrettyPrinter()
                                         .writeValueAsString(
                                                         request);
@@ -162,7 +164,7 @@ public class SkyDropXQuotationService {
                         /**
                          * Parsear response JSON.
                          */
-                        JsonNode root = mapper.readTree(rawBody);
+                        JsonNode root = objectMapper.readTree(rawBody);
 
                         /**
                          * Obtener quotationId.

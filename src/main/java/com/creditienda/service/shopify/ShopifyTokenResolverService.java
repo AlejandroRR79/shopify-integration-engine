@@ -32,6 +32,7 @@ public class ShopifyTokenResolverService {
     private final RestTemplate restTemplate;
 
     private final Map<String, TokenEntry> tokenCache = new ConcurrentHashMap<>();
+    private final Map<String, Object> aliasLocks = new ConcurrentHashMap<>();
 
     public ShopifyTokenResolverService(RestTemplate restTemplate) {
         this.restTemplate = restTemplate;
@@ -44,15 +45,24 @@ public class ShopifyTokenResolverService {
         }
 
         if ("OAUTH".equalsIgnoreCase(store.getAuthType())) {
-            TokenEntry entry = tokenCache.get(store.getAlias());
 
-            if (entry == null || entry.isExpired()) {
+            // Fast path: token vigente, sin bloqueo
+            TokenEntry entry = tokenCache.get(store.getAlias());
+            if (entry != null && !entry.isExpired()) {
+                return entry.token;
+            }
+
+            // Slow path: renovar con lock por alias (evita thundering herd)
+            synchronized (aliasLocks.computeIfAbsent(store.getAlias(), k -> new Object())) {
+                // Double-check tras adquirir el lock
+                entry = tokenCache.get(store.getAlias());
+                if (entry != null && !entry.isExpired()) {
+                    return entry.token;
+                }
                 TokenEntry nuevo = obtenerTokenOAuth(store);
                 tokenCache.put(store.getAlias(), nuevo);
                 return nuevo.token;
             }
-
-            return entry.token;
         }
 
         throw new IllegalArgumentException(
