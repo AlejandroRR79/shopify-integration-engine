@@ -7,6 +7,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.slf4j.Logger;
 
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.creditienda.dto.delivery.B2BSeguimientoEntregaOrdenDTO;
 import com.creditienda.dto.delivery.B2BActualizarEstatusEntregaDTO;
@@ -208,6 +209,7 @@ public class DeliveryDAO {
                 orderNumber, waybill, rows);
     }
 
+    @Transactional
     public void updateEstatusDelivery(
             B2BActualizarEstatusEntregaDTO dto,
             String cveEstatusOdcNuevo,
