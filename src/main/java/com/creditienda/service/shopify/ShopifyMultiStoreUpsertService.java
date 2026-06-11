@@ -5,9 +5,14 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -28,59 +33,65 @@ public class ShopifyMultiStoreUpsertService {
     private final ShopifyMultiStoreProperties multiStoreProperties;
     private final ShopifyTokenResolverService tokenResolver;
     private final RestTemplate restTemplate;
+    private final Executor shopifyExecutor;
 
     public ShopifyMultiStoreUpsertService(
             ShopifyMultiStoreProperties multiStoreProperties,
             ShopifyTokenResolverService tokenResolver,
-            RestTemplate restTemplate) {
+            RestTemplate restTemplate,
+            @Qualifier("shopifyMultiStoreExecutor") Executor shopifyExecutor) {
 
         this.multiStoreProperties = multiStoreProperties;
         this.tokenResolver = tokenResolver;
         this.restTemplate = restTemplate;
+        this.shopifyExecutor = shopifyExecutor;
     }
 
     // ================= API PUBLICA =================
 
     public Map<String, Map<String, Object>> upsert(ShopifyProductUpsertDTO dto) {
 
+        List<ShopifyStoreConfig> stores = multiStoreProperties.getStores();
+        Map<String, Map<String, Object>> conc = new ConcurrentHashMap<>();
+
+        List<CompletableFuture<Void>> futures = stores.stream()
+                .map(store -> CompletableFuture.runAsync(() -> {
+                    log.info("[MULTI-UPSERT] tienda={} handle={}", store.getAlias(), dto.getHandle());
+                    Map<String, Object> resultado = new LinkedHashMap<>();
+                    try {
+                        String token = tokenResolver.resolverToken(store);
+                        Map<String, Object> producto = buscarPorHandle(dto.getHandle(), store, token);
+
+                        if (producto == null) {
+                            crearProducto(dto, store, token);
+                            resultado.put("accion", "CREADO");
+                            log.info("[MULTI-UPSERT] CREADO tienda={} handle={}", store.getAlias(), dto.getHandle());
+                        } else {
+                            actualizarProductoYVariante(producto, dto, store, token);
+                            resultado.put("accion", "ACTUALIZADO");
+                            log.info("[MULTI-UPSERT] ACTUALIZADO tienda={} handle={}", store.getAlias(), dto.getHandle());
+                        }
+
+                        resultado.put("handle", dto.getHandle());
+                        resultado.put("exito", true);
+                        resultado.put("error", null);
+
+                    } catch (Exception e) {
+                        log.error("[MULTI-UPSERT] ERROR tienda={} handle={} msg={}",
+                                store.getAlias(), dto.getHandle(), e.getMessage(), e);
+                        resultado.put("accion", "ERROR");
+                        resultado.put("handle", dto.getHandle());
+                        resultado.put("exito", false);
+                        resultado.put("error", e.getMessage());
+                    }
+                    conc.put(store.getDomain(), resultado);
+                }, shopifyExecutor))
+                .collect(Collectors.toList());
+
+        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+
         Map<String, Map<String, Object>> resultados = new LinkedHashMap<>();
-
-        for (ShopifyStoreConfig store : multiStoreProperties.getStores()) {
-
-            log.info("[MULTI-UPSERT] tienda={} handle={}", store.getAlias(), dto.getHandle());
-
-            Map<String, Object> resultado = new LinkedHashMap<>();
-
-            try {
-                String token = tokenResolver.resolverToken(store);
-                Map<String, Object> producto = buscarPorHandle(dto.getHandle(), store, token);
-
-                if (producto == null) {
-                    crearProducto(dto, store, token);
-                    resultado.put("accion", "CREADO");
-                    log.info("[MULTI-UPSERT] CREADO tienda={} handle={}", store.getAlias(), dto.getHandle());
-                } else {
-                    actualizarProductoYVariante(producto, dto, store, token);
-                    resultado.put("accion", "ACTUALIZADO");
-                    log.info("[MULTI-UPSERT] ACTUALIZADO tienda={} handle={}", store.getAlias(), dto.getHandle());
-                }
-
-                resultado.put("handle", dto.getHandle());
-                resultado.put("exito", true);
-                resultado.put("error", null);
-
-            } catch (Exception e) {
-                log.error("[MULTI-UPSERT] ERROR tienda={} handle={} msg={}",
-                        store.getAlias(), dto.getHandle(), e.getMessage(), e);
-                resultado.put("accion", "ERROR");
-                resultado.put("handle", dto.getHandle());
-                resultado.put("exito", false);
-                resultado.put("error", e.getMessage());
-            }
-
-            resultados.put(store.getDomain(), resultado);
-        }
-
+        stores.forEach(s -> resultados.put(s.getDomain(), conc.get(s.getDomain())));
         return resultados;
     }
 

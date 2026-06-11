@@ -92,12 +92,16 @@ public class SkyDropXRateSelectionService {
 
         private final SkyDropXProcessDAO skyDropXProcessDAO;
 
+        private final ObjectMapper objectMapper;
+
         public SkyDropXRateSelectionService(
                         SkyDropXQuotationClientService quotationClientService,
-                        SkyDropXProcessDAO skyDropXProcessDAO) {
+                        SkyDropXProcessDAO skyDropXProcessDAO,
+                        ObjectMapper objectMapper) {
 
                 this.quotationClientService = quotationClientService;
                 this.skyDropXProcessDAO = skyDropXProcessDAO;
+                this.objectMapper = objectMapper;
         }
 
         /**
@@ -182,9 +186,7 @@ public class SkyDropXRateSelectionService {
 
                         try {
 
-                                ObjectMapper mapper = new ObjectMapper();
-
-                                String quotationRawJson = mapper
+                                String quotationRawJson = objectMapper
                                                 .writerWithDefaultPrettyPrinter()
                                                 .writeValueAsString(quotation);
 

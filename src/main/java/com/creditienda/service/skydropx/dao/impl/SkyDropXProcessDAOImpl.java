@@ -372,15 +372,17 @@ public class SkyDropXProcessDAOImpl implements SkyDropXProcessDAO {
         @Override
         public List<SkyDropXProcessRecord> findStuckProcesses(
                         int stuckMinutes,
-                        int maxRetries) {
+                        int maxRetries,
+                        int batchSize) {
 
-                String sql = "SELECT * FROM SKYDROPX_PROCESS " +
+                String sql = "SELECT TOP(:batchSize) * FROM SKYDROPX_PROCESS " +
                                 "WHERE statusId IN (:statusIds) " +
                                 "AND isActive = 1 " +
                                 "AND isRetryable = 1 " +
                                 "AND processStep IN (:steps) " +
                                 "AND retryCount < :maxRetries " +
-                                "AND updatedAt < DATEADD(minute, -:stuckMinutes, GETDATE())";
+                                "AND updatedAt < DATEADD(minute, -:stuckMinutes, GETDATE()) " +
+                                "ORDER BY updatedAt ASC";
 
                 MapSqlParameterSource params = new MapSqlParameterSource();
 
@@ -395,8 +397,8 @@ public class SkyDropXProcessDAOImpl implements SkyDropXProcessDAO {
                                 SkyDropXProcessStep.SHIPMENT_COMPLETED));
 
                 params.addValue("maxRetries", maxRetries);
-
                 params.addValue("stuckMinutes", stuckMinutes);
+                params.addValue("batchSize", batchSize);
 
                 List<SkyDropXProcessRecord> result = jdbcTemplate.query(
                                 sql,

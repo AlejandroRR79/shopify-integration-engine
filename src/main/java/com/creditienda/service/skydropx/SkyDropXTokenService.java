@@ -68,90 +68,73 @@ public class SkyDropXTokenService {
          * Si expiró:
          * solicita nuevo token OAuth.
          */
-        public synchronized String getAccessToken() {
+        public String getAccessToken() {
 
-                /**
-                 * Reutilizar token vigente.
-                 */
+                // Fast path: token vigente, sin bloqueo
                 if (cachedAccessToken != null
                                 && tokenExpirationTime != null
-                                && LocalDateTime.now().isBefore(
-                                                tokenExpirationTime)) {
+                                && LocalDateTime.now().isBefore(tokenExpirationTime)) {
 
-                        log.debug(
-                                        "[SKYDROPX-AUTH] reutilizando token cache");
-
+                        log.debug("[SKYDROPX-AUTH] reutilizando token cache");
                         return cachedAccessToken;
                 }
 
-                try {
+                // Slow path: renovar con lock — evita thundering herd
+                synchronized (this) {
 
-                        log.info(
-                                        "[SKYDROPX-AUTH] solicitando nuevo token OAuth");
+                        // Double-check: otro thread pudo haber renovado mientras esperábamos
+                        if (cachedAccessToken != null
+                                        && tokenExpirationTime != null
+                                        && LocalDateTime.now().isBefore(tokenExpirationTime)) {
 
-                        HttpHeaders headers = new HttpHeaders();
-
-                        headers.setContentType(
-                                        MediaType.APPLICATION_JSON);
-
-                        Map<String, Object> body = new HashMap<>();
-
-                        body.put("client_id", clientId);
-                        body.put("client_secret", clientSecret);
-                        body.put("grant_type", "client_credentials");
-
-                        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
-
-                        ResponseEntity<JsonNode> response = restTemplate.exchange(
-                                        authUrl,
-                                        HttpMethod.POST,
-                                        entity,
-                                        JsonNode.class);
-
-                        JsonNode responseBody = response.getBody();
-
-                        if (responseBody == null) {
-
-                                throw new RuntimeException(
-                                                "Respuesta OAuth vacia");
+                                log.debug("[SKYDROPX-AUTH] reutilizando token cache (double-check)");
+                                return cachedAccessToken;
                         }
 
-                        String accessToken = responseBody
-                                        .get("access_token")
-                                        .asText();
+                        try {
 
-                        /**
-                         * Guardar token cache.
-                         */
-                        cachedAccessToken = accessToken;
+                                log.info("[SKYDROPX-AUTH] solicitando nuevo token OAuth");
 
-                        /**
-                         * Calcular expiración.
-                         */
-                        tokenExpirationTime = LocalDateTime.now()
-                                        .plusSeconds(
-                                                        tokenExpirationSeconds);
+                                HttpHeaders headers = new HttpHeaders();
+                                headers.setContentType(MediaType.APPLICATION_JSON);
 
-                        log.info(
-                                        "[SKYDROPX-AUTH] token OAuth cacheado expiration={}",
-                                        tokenExpirationTime);
+                                Map<String, Object> body = new HashMap<>();
+                                body.put("client_id", clientId);
+                                body.put("client_secret", clientSecret);
+                                body.put("grant_type", "client_credentials");
 
-                        return cachedAccessToken;
+                                HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
 
-                } catch (Exception ex) {
+                                ResponseEntity<JsonNode> response = restTemplate.exchange(
+                                                authUrl,
+                                                HttpMethod.POST,
+                                                entity,
+                                                JsonNode.class);
 
-                        log.error(
-                                        "[SKYDROPX-AUTH] error obteniendo token",
-                                        ex);
+                                JsonNode responseBody = response.getBody();
 
-                        /**
-                         * Limpiar cache inválido.
-                         */
-                        cachedAccessToken = null;
-                        tokenExpirationTime = null;
+                                if (responseBody == null) {
+                                        throw new RuntimeException("Respuesta OAuth vacia");
+                                }
 
-                        throw new RuntimeException(
-                                        "Error obteniendo token SkyDropX");
+                                String accessToken = responseBody.get("access_token").asText();
+
+                                cachedAccessToken = accessToken;
+                                tokenExpirationTime = LocalDateTime.now().plusSeconds(tokenExpirationSeconds);
+
+                                log.info("[SKYDROPX-AUTH] token OAuth cacheado expiration={}", tokenExpirationTime);
+
+                                return cachedAccessToken;
+
+                        } catch (Exception ex) {
+
+                                log.error("[SKYDROPX-AUTH] error obteniendo token", ex);
+
+                                cachedAccessToken = null;
+                                tokenExpirationTime = null;
+
+                                throw new RuntimeException("Error obteniendo token SkyDropX");
+                        }
                 }
         }
 

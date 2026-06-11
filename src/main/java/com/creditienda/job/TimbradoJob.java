@@ -26,7 +26,6 @@ import com.creditienda.model.timbrado.TicketDoc;
 import com.creditienda.model.timbrado.Tra;
 import com.creditienda.service.TimbradoClient;
 import com.creditienda.service.notificacion.NotificacionService;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Component
 @DisallowConcurrentExecution
@@ -52,14 +51,6 @@ public class TimbradoJob implements Job {
 
         try {
             Documento doc = generarDocumentoDummy();
-
-            // Configurar ObjectMapper para ignorar campos nulos
-            ObjectMapper mapper = new ObjectMapper();
-            mapper.setSerializationInclusion(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL);
-
-            // Serializar a JSON e imprimir
-            String json = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(doc);
-            logger.info("📄 Documento generado (sin nulos):\n{}", json);
 
             // Enviar al PAC
             String respuesta1 = timbradoClient.timbrarJson(doc);

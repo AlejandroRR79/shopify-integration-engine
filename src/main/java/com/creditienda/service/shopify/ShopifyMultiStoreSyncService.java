@@ -36,19 +36,22 @@ public class ShopifyMultiStoreSyncService {
     private final RestTemplate restTemplate;
     private final B2BService b2bService;
     private final B2BTokenService b2bTokenService;
+    private final ObjectMapper objectMapper;
 
     public ShopifyMultiStoreSyncService(
             ShopifyMultiStoreProperties multiStoreProperties,
             ShopifyTokenResolverService tokenResolver,
             RestTemplate restTemplate,
             B2BService b2bService,
-            B2BTokenService b2bTokenService) {
+            B2BTokenService b2bTokenService,
+            ObjectMapper objectMapper) {
 
         this.multiStoreProperties = multiStoreProperties;
         this.tokenResolver = tokenResolver;
         this.restTemplate = restTemplate;
         this.b2bService = b2bService;
         this.b2bTokenService = b2bTokenService;
+        this.objectMapper = objectMapper;
     }
 
     // ================= API PUBLICA =================
@@ -62,7 +65,6 @@ public class ShopifyMultiStoreSyncService {
 
         List<String> exitosas = new ArrayList<>();
         Map<String, String> fallidas = new LinkedHashMap<>();
-        ObjectMapper mapper = new ObjectMapper();
 
         List<Map<String, Object>> ordenes = obtenerOrdenesEntreFechas(inicio, fin, store, token);
 
@@ -82,7 +84,7 @@ public class ShopifyMultiStoreSyncService {
             String numeroOC = String.valueOf(orden.get("id"));
             try {
                 Map<String, Object> registro = ShopifyOrderMapper.transformar(orden);
-                String jsonRegistro = mapper.writeValueAsString(registro);
+                String jsonRegistro = objectMapper.writeValueAsString(registro);
 
                 log.info("[MULTI-SYNC] procesando orden={} tienda={}", numeroOC, store.getDomain());
 
@@ -114,7 +116,6 @@ public class ShopifyMultiStoreSyncService {
 
         List<String> exitosas = new ArrayList<>();
         Map<String, String> fallidas = new LinkedHashMap<>();
-        ObjectMapper mapper = new ObjectMapper();
 
         try {
             Map<String, Object> orden = obtenerOrdenPorId(ordenId, store, token);
@@ -126,7 +127,7 @@ public class ShopifyMultiStoreSyncService {
 
             String b2bToken = b2bTokenService.obtenerTokenOC();
             Map<String, Object> registro = ShopifyOrderMapper.transformar(orden);
-            String jsonRegistro = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(registro);
+            String jsonRegistro = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(registro);
 
             boolean enviado = b2bService.enviarOrden(jsonRegistro, b2bToken, true);
 

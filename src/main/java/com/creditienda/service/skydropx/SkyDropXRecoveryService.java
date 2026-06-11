@@ -25,6 +25,9 @@ public class SkyDropXRecoveryService {
     @Value("${skydropx.recovery.max-retries}")
     private int maxRetries;
 
+    @Value("${skydropx.recovery.batch-size:50}")
+    private int batchSize;
+
     private final SkyDropXProcessDAO skyDropXProcessDAO;
     private final SkyDropXProcessOrchestratorService orchestratorService;
     private final ObjectMapper objectMapper;
@@ -45,7 +48,7 @@ public class SkyDropXRecoveryService {
                 stuckMinutes, maxRetries);
 
         List<SkyDropXProcessRecord> stuckRecords =
-                skyDropXProcessDAO.findStuckProcesses(stuckMinutes, maxRetries);
+                skyDropXProcessDAO.findStuckProcesses(stuckMinutes, maxRetries, batchSize);
 
         if (stuckRecords.isEmpty()) {
             log.info("[SKYDROPX-RECOVERY] no hay procesos atorados");

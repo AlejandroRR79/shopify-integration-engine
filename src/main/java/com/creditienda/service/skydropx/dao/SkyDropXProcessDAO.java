@@ -56,7 +56,8 @@ public interface SkyDropXProcessDAO {
 
         List<SkyDropXProcessRecord> findStuckProcesses(
                         int stuckMinutes,
-                        int maxRetries);
+                        int maxRetries,
+                        int batchSize);
 
         void incrementRetryCount(String quotationId);
 

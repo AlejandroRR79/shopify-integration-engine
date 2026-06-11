@@ -26,7 +26,7 @@ public class DeliveryTrackingService {
 
     private final B2BDeliveryClient b2bClient;
     private final EstafetHistorialClient estafetaClient;
-    private final ObjectMapper mapper = new ObjectMapper();
+    private final ObjectMapper mapper;
 
     @Value("${b2b.seguimiento.estatus}")
     private List<String> estatusSeguimiento;
@@ -53,11 +53,13 @@ public class DeliveryTrackingService {
     public DeliveryTrackingService(
             B2BDeliveryClient b2bClient,
             EstafetHistorialClient estafetaClient,
-            NotificacionService notificacionService) {
+            NotificacionService notificacionService,
+            ObjectMapper mapper) {
 
         this.b2bClient = b2bClient;
         this.estafetaClient = estafetaClient;
         this.notificacionService = notificacionService;
+        this.mapper = mapper;
     }
 
     public void sincronizarEstatusEntregas() {
