@@ -14,6 +14,9 @@ public class SyncB2BRequestDTO {
     /** Para sync de una sola orden */
     private String ordenId;
 
+    /** Si es true, solo consulta Shopify y NO envia nada a B2B. Default false. */
+    private boolean soloConsulta;
+
     public String getTienda() {
         return tienda;
     }
@@ -44,5 +47,13 @@ public class SyncB2BRequestDTO {
 
     public void setOrdenId(String ordenId) {
         this.ordenId = ordenId;
+    }
+
+    public boolean isSoloConsulta() {
+        return soloConsulta;
+    }
+
+    public void setSoloConsulta(boolean soloConsulta) {
+        this.soloConsulta = soloConsulta;
     }
 }

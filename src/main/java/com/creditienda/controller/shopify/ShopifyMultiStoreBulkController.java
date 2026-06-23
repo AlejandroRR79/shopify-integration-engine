@@ -139,7 +139,7 @@ public class ShopifyMultiStoreBulkController {
 
         return ResponseEntity.ok(
                 multiStoreSyncService.sincronizarPorFechas(
-                        request.getTienda(), request.getFechaInicio(), request.getFechaFin()));
+                        request.getTienda(), request.getFechaInicio(), request.getFechaFin(), request.isSoloConsulta()));
     }
 
     // =============================
@@ -160,6 +160,6 @@ public class ShopifyMultiStoreBulkController {
 
         return ResponseEntity.ok(
                 multiStoreSyncService.sincronizarUnaOrden(
-                        request.getTienda(), request.getOrdenId()));
+                        request.getTienda(), request.getOrdenId(), request.isSoloConsulta()));
     }
 }

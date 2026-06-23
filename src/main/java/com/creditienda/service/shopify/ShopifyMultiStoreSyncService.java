@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,16 +58,33 @@ public class ShopifyMultiStoreSyncService {
     // ================= API PUBLICA =================
 
     public Map<String, Object> sincronizarPorFechas(String aliasTienda, LocalDate inicio, LocalDate fin) {
+        return sincronizarPorFechas(aliasTienda, inicio, fin, false);
+    }
+
+    public Map<String, Object> sincronizarPorFechas(String aliasTienda, LocalDate inicio, LocalDate fin, boolean soloConsulta) {
 
         ShopifyStoreConfig store = resolverTienda(aliasTienda);
         String token = resolverTokenOrdenes(store);
 
-        log.info("[MULTI-SYNC] tienda={} rango={} a {}", store.getDomain(), inicio, fin);
+        log.info("[MULTI-SYNC] tienda={} rango={} a {} soloConsulta={}", store.getDomain(), inicio, fin, soloConsulta);
+
+        List<Map<String, Object>> ordenes = obtenerOrdenesEntreFechas(inicio, fin, store, token);
+
+        if (soloConsulta) {
+            List<String> numerosOrden = ordenes.stream()
+                    .map(o -> String.valueOf(o.get("id")))
+                    .collect(Collectors.toList());
+
+            Map<String, Object> r = new LinkedHashMap<>();
+            r.put("tienda", store.getDomain());
+            r.put("soloConsulta", true);
+            r.put("totalOrdenes", ordenes.size());
+            r.put("ordenes", numerosOrden);
+            return r;
+        }
 
         List<String> exitosas = new ArrayList<>();
         Map<String, String> fallidas = new LinkedHashMap<>();
-
-        List<Map<String, Object>> ordenes = obtenerOrdenesEntreFechas(inicio, fin, store, token);
 
         if (ordenes.isEmpty()) {
             return resultado(store.getDomain(), exitosas, fallidas, "No se encontraron ordenes en el rango indicado.");
@@ -108,11 +126,15 @@ public class ShopifyMultiStoreSyncService {
     }
 
     public Map<String, Object> sincronizarUnaOrden(String aliasTienda, String ordenId) {
+        return sincronizarUnaOrden(aliasTienda, ordenId, false);
+    }
+
+    public Map<String, Object> sincronizarUnaOrden(String aliasTienda, String ordenId, boolean soloConsulta) {
 
         ShopifyStoreConfig store = resolverTienda(aliasTienda);
         String token = resolverTokenOrdenes(store);
 
-        log.info("[MULTI-SYNC] orden unica tienda={} ordenId={}", store.getDomain(), ordenId);
+        log.info("[MULTI-SYNC] orden unica tienda={} ordenId={} soloConsulta={}", store.getDomain(), ordenId, soloConsulta);
 
         List<String> exitosas = new ArrayList<>();
         Map<String, String> fallidas = new LinkedHashMap<>();
@@ -123,6 +145,14 @@ public class ShopifyMultiStoreSyncService {
             if (orden == null) {
                 fallidas.put(ordenId, "Orden no encontrada en Shopify");
                 return resultado(store.getDomain(), exitosas, fallidas, null);
+            }
+
+            if (soloConsulta) {
+                Map<String, Object> r = new LinkedHashMap<>();
+                r.put("tienda", store.getDomain());
+                r.put("soloConsulta", true);
+                r.put("orden", orden);
+                return r;
             }
 
             String b2bToken = b2bTokenService.obtenerTokenOC();
