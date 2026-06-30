@@ -99,7 +99,9 @@ public class GuiaUnificadaService {
         }
 
         log.error("[GUIA-UNIFICADA] todos los carriers fallaron. prelacion={}", prelacion);
-        throw new RuntimeException("No fue posible generar la guía. Todos los carriers de la prelación fallaron.");
+        GuiaUnificadaResponseDTO errorResponse = new GuiaUnificadaResponseDTO();
+        errorResponse.setErrores(errores);
+        throw new AllCarriersFailedException(errorResponse);
     }
 
     private GuiaUnificadaResponseDTO intentarEstafeta(WayBillRequestDTO request) {
@@ -181,6 +183,15 @@ public class GuiaUnificadaService {
         request.getLabelDefinition()
                 .getServiceConfiguration()
                 .setEffectiveDate(effectiveDate);
+    }
+
+    public static class AllCarriersFailedException extends RuntimeException {
+        private final GuiaUnificadaResponseDTO response;
+        public AllCarriersFailedException(GuiaUnificadaResponseDTO response) {
+            super("Todos los carriers fallaron");
+            this.response = response;
+        }
+        public GuiaUnificadaResponseDTO getResponse() { return response; }
     }
 
     private JsonNode parsearJson(String json) {
