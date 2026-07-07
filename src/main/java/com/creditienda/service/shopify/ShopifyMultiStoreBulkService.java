@@ -80,7 +80,8 @@ public class ShopifyMultiStoreBulkService {
                                 procesarChunk(chunk, store, token, locationId,
                                         exitosos, fallidosPrecio, fallidosInventario);
                             } catch (Exception e) {
-                                log.error("[MULTI-STORE] error en chunk tienda={}", store.getAlias(), e);
+                                List<String> handlesChunk = chunk.stream().map(ProductoActualizarDTO::getHandle).collect(Collectors.toList());
+                                log.error("[MULTI-STORE] error en chunk tienda={} handles={} causa={}", store.getAlias(), handlesChunk, e.getMessage(), e);
                                 chunk.forEach(p -> {
                                     fallidosPrecio.add(p.getHandle());
                                     fallidosInventario.add(p.getHandle());
@@ -377,6 +378,7 @@ public class ShopifyMultiStoreBulkService {
         for (ProductoActualizarDTO dto : chunk) {
             ShopifyIds s = ids.get(dto.getHandle().toLowerCase());
             if (s == null) {
+                log.warn("[MULTI-STORE] PRECIO handle no encontrado en tienda={} handle={}", store.getAlias(), dto.getHandle());
                 fallidos.add(dto.getHandle());
                 continue;
             }
@@ -408,13 +410,14 @@ public class ShopifyMultiStoreBulkService {
         Map<String, Object> response = ejecutarGraphQL(Map.of("query", mutation.toString()), store, token);
 
         if (response.containsKey("errors")) {
-            log.error("[MULTI-STORE] PRICE ERRORS tienda={} → {}", store.getAlias(), response.get("errors"));
+            log.error("[MULTI-STORE] PRICE ERRORS tienda={} handles={} causa={}", store.getAlias(), aliasToHandle.values(), response.get("errors"));
             aliasToHandle.values().forEach(fallidos::add);
             return new ResultadoOperacion(exitosos, fallidos);
         }
 
         Map<String, Object> data = (Map<String, Object>) response.get("data");
         if (data == null) {
+            log.error("[MULTI-STORE] PRECIO data null en respuesta tienda={} handles={}", store.getAlias(), aliasToHandle.values());
             aliasToHandle.values().forEach(fallidos::add);
             return new ResultadoOperacion(exitosos, fallidos);
         }
@@ -450,6 +453,7 @@ public class ShopifyMultiStoreBulkService {
         for (ProductoActualizarDTO dto : chunk) {
             ShopifyIds s = ids.get(dto.getHandle().toLowerCase());
             if (s == null) {
+                log.warn("[MULTI-STORE] INVENTARIO handle no encontrado en tienda={} handle={}", store.getAlias(), dto.getHandle());
                 fallidos.add(dto.getHandle());
                 continue;
             }
@@ -497,7 +501,8 @@ public class ShopifyMultiStoreBulkService {
         Map<String, Object> response = ejecutarGraphQL(body, store, token);
 
         if (response.containsKey("errors")) {
-            log.error("[MULTI-STORE] INVENTORY ERRORS tienda={} → {}", store.getAlias(), response.get("errors"));
+            List<String> handlesChunk = chunk.stream().map(ProductoActualizarDTO::getHandle).collect(Collectors.toList());
+            log.error("[MULTI-STORE] INVENTORY ERRORS tienda={} handles={} causa={}", store.getAlias(), handlesChunk, response.get("errors"));
             chunk.forEach(p -> fallidos.add(p.getHandle()));
             return new ResultadoOperacion(exitosos, fallidos);
         }
@@ -508,23 +513,26 @@ public class ShopifyMultiStoreBulkService {
 
         if (userErrors != null && !userErrors.isEmpty()) {
 
-            log.error("[MULTI-STORE] INVENTORY userErrors tienda={} → {}", store.getAlias(), userErrors);
-
+            Map<String, String> handleErrorMap = new java.util.LinkedHashMap<>();
             for (Map<String, Object> error : userErrors) {
                 List<String> field = (List<String>) error.get("field");
-                log.error("[MULTI-STORE] INVENTORY userError field={} message={}", field, error.get("message"));
+                String mensaje = String.valueOf(error.get("message"));
                 if (field != null && field.size() >= 3) {
                     try {
                         int index = Integer.parseInt(field.get(2));
-                        fallidos.add(chunk.get(index).getHandle());
+                        String handleFallido = chunk.get(index).getHandle();
+                        handleErrorMap.put(handleFallido, mensaje);
+                        fallidos.add(handleFallido);
                     } catch (Exception ex) {
-                        log.warn("[MULTI-STORE] no se pudo mapear error inventario por índice", ex);
-                        chunk.forEach(p -> fallidos.add(p.getHandle()));
+                        log.warn("[MULTI-STORE] no se pudo mapear error inventario por índice, marcando chunk completo", ex);
+                        chunk.forEach(p -> { handleErrorMap.put(p.getHandle(), mensaje); fallidos.add(p.getHandle()); });
                     }
                 } else {
-                    chunk.forEach(p -> fallidos.add(p.getHandle()));
+                    chunk.forEach(p -> { handleErrorMap.put(p.getHandle(), mensaje); fallidos.add(p.getHandle()); });
                 }
             }
+            log.error("[MULTI-STORE] INVENTARIO fallidos tienda={} handles+errores={}", store.getAlias(), handleErrorMap);
+
             chunk.forEach(p -> {
                 if (!fallidos.contains(p.getHandle())) exitosos.add(p.getHandle());
             });

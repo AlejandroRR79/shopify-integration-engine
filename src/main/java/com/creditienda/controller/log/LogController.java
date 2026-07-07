@@ -8,15 +8,24 @@ import java.io.OutputStream;
 import java.io.RandomAccessFile;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Stream;
+import java.util.zip.GZIPInputStream;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -122,6 +131,118 @@ public class LogController {
         }
 
         log.info("✅ Log descargado correctamente");
+    }
+
+    @GetMapping("/list")
+    public ResponseEntity<List<Map<String, Object>>> listLogs() throws IOException {
+        log.info("Entrando a /api/logs/list");
+
+        Path logsDir = Paths.get("logs");
+        if (!Files.isDirectory(logsDir)) {
+            return ResponseEntity.ok(List.of());
+        }
+
+        try (Stream<Path> paths = Files.list(logsDir)) {
+            List<Map<String, Object>> files = paths
+                    .filter(Files::isRegularFile)
+                    .filter(path -> path.getFileName().toString().startsWith("creditienda"))
+                    .map(path -> {
+                        try {
+                            LocalDateTime lastModified = LocalDateTime.ofInstant(
+                                    Files.getLastModifiedTime(path).toInstant(),
+                                    ZoneId.systemDefault());
+
+                            return Map.<String, Object>of(
+                                    "filename", path.getFileName().toString(),
+                                    "sizeBytes", Files.size(path),
+                                    "lastModified", lastModified.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+                        } catch (IOException e) {
+                            throw new IllegalStateException("Error al leer metadata de " + path.getFileName(), e);
+                        }
+                    })
+                    .sorted(Comparator.comparing(
+                            entry -> (String) entry.get("lastModified"),
+                            Comparator.reverseOrder()))
+                    .toList();
+
+            return ResponseEntity.ok(files);
+        }
+    }
+
+    @GetMapping("/download/{filename}")
+    public void downloadLogFile(
+            @PathVariable String filename,
+            HttpServletResponse response) throws IOException {
+
+        log.info("Entrando a /api/logs/download/{}", filename);
+
+        Path logsDir = Paths.get("logs").toAbsolutePath().normalize();
+        Path logFile = logsDir.resolve(filename).normalize();
+
+        if (!logFile.startsWith(logsDir)) {
+            log.warn("Intento de path traversal en descarga de log: {}", filename);
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            response.getWriter().write("Nombre de archivo invalido");
+            return;
+        }
+
+        File file = logFile.toFile();
+        if (!file.exists() || !file.isFile()) {
+            log.warn("No se encontro archivo de log en {}", logFile);
+            response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+            response.getWriter().write("No se encontro el archivo de log");
+            return;
+        }
+
+        if (!filename.startsWith("creditienda")) {
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            response.getWriter().write("Nombre de archivo no permitido");
+            return;
+        }
+
+        if (!filename.endsWith(".log") && !filename.endsWith(".log.gz")) {
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            response.getWriter().write("Extension de archivo no soportada");
+            return;
+        }
+
+        String downloadFilename = filename.endsWith(".log.gz")
+                ? filename.substring(0, filename.length() - 3)
+                : filename;
+
+        response.setContentType("text/plain; charset=UTF-8");
+        response.setHeader("Content-Disposition",
+                "attachment; filename=" + downloadFilename);
+
+        if (filename.endsWith(".log")) {
+            response.setContentLengthLong(file.length());
+        }
+
+        try (InputStream in = openLogInputStream(file, filename);
+                OutputStream out = response.getOutputStream()) {
+
+            byte[] buffer = new byte[8192];
+            int bytesRead;
+
+            while ((bytesRead = in.read(buffer)) != -1) {
+                out.write(buffer, 0, bytesRead);
+            }
+        }
+
+        log.info("Log descargado correctamente: {}", filename);
+    }
+
+    private InputStream openLogInputStream(File file, String filename) throws IOException {
+        if (filename.endsWith(".log.gz")) {
+            InputStream in = new FileInputStream(file);
+            try {
+                return new GZIPInputStream(in);
+            } catch (IOException e) {
+                in.close();
+                throw e;
+            }
+        }
+        return new FileInputStream(file);
     }
 
 }
