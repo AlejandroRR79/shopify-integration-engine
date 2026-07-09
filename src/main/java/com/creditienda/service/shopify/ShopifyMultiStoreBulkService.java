@@ -123,6 +123,14 @@ public class ShopifyMultiStoreBulkService {
                 .map(store -> CompletableFuture.runAsync(() -> {
                     log.info("[MULTI-STORE] PRECIO tienda={} loteId={}", store.getAlias(), loteId);
                     try {
+                        if (!store.isUpdatePrice()) {
+                            log.info("[MULTI-STORE] PRECIO omitido por configuracion tienda={}", store.getAlias());
+                            conc.put(store.getDomain(), new RespuestaLoteBulkDTO(
+                                    List.of(), List.of(), List.of(), productos.size(),
+                                    "⏭ Actualización de precio no aplica para esta tienda"));
+                            return;
+                        }
+
                         String token = tokenResolver.resolverToken(store);
 
                         Set<String> exitosos = new HashSet<>();
@@ -226,7 +234,9 @@ public class ShopifyMultiStoreBulkService {
             Set<String> fallidosInventario) {
 
         Map<String, ShopifyIds> ids = obtenerIdsPorHandle(chunk, store, token);
-        ResultadoOperacion precio = actualizarPrecios(chunk, ids, store, token);
+        ResultadoOperacion precio = store.isUpdatePrice()
+                ? actualizarPrecios(chunk, ids, store, token)
+                : new ResultadoOperacion(chunk.stream().map(ProductoActualizarDTO::getHandle).collect(Collectors.toSet()), new HashSet<>());
         ResultadoOperacion inventario = actualizarInventario(chunk, ids, locationId, store, token);
 
         for (ProductoActualizarDTO dto : chunk) {

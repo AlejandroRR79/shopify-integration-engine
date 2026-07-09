@@ -161,7 +161,8 @@ public class EnvironmentController {
                 "shopify.stores[1].client-id",
                 "shopify.stores[1].client-secret",
                 "shopify.stores[1].token-url",
-                "shopify.stores[1].bulk-chunk-size"
+                "shopify.stores[1].bulk-chunk-size",
+                "shopify.stores[1].update-price"
 
         };
 

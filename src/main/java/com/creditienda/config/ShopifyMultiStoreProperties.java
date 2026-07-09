@@ -41,6 +41,7 @@ public class ShopifyMultiStoreProperties {
         private String ordersAccessToken;
 
         private int bulkChunkSize = 20;
+        private boolean updatePrice = true;
 
         public String getAlias() { return alias; }
         public void setAlias(String alias) { this.alias = alias; }
@@ -71,5 +72,8 @@ public class ShopifyMultiStoreProperties {
 
         public int getBulkChunkSize() { return bulkChunkSize; }
         public void setBulkChunkSize(int bulkChunkSize) { this.bulkChunkSize = bulkChunkSize; }
+
+        public boolean isUpdatePrice() { return updatePrice; }
+        public void setUpdatePrice(boolean updatePrice) { this.updatePrice = updatePrice; }
     }
 }
