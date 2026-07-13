@@ -11,13 +11,17 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
+@Tag(name = "Webhook Debug", description = "Endpoint de diagnostico — loguea headers y body completo de cualquier webhook entrante")
 @RestController
 @RequestMapping("/api/webhook")
 public class WebhookDebugController {
 
     private static final Logger logger = LoggerFactory.getLogger(WebhookDebugController.class);
 
+    @Operation(summary = "Debug webhook", description = "Loguea todos los headers y el body raw. Util para inspeccionar payloads de webhooks desconocidos.")
     @PostMapping("/debug")
     public ResponseEntity<Map<String, Object>> debugWebhook(
             @RequestHeader Map<String, String> headers,

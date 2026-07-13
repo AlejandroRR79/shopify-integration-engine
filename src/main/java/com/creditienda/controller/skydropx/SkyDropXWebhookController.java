@@ -14,7 +14,10 @@ import org.springframework.web.bind.annotation.RestController;
 import com.creditienda.service.skydropx.SkyDropXWebhookService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
+@Tag(name = "Webhook SkyDropX", description = "Receptor de eventos de SkyDropX (shipment updates). Endpoint publico con validacion HMAC.")
 @RestController
 @RequestMapping("/api/webhook/skydropx")
 public class SkyDropXWebhookController {
@@ -31,6 +34,7 @@ public class SkyDropXWebhookController {
         this.webhookService = webhookService;
     }
 
+    @Operation(summary = "Recibir evento SkyDropX", description = "Webhook publico que recibe actualizaciones de shipment de SkyDropX. Validacion por HMAC en header Authorization.")
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> receiveWebhook(
             @RequestHeader(value = "Authorization", required = false) String authorization,

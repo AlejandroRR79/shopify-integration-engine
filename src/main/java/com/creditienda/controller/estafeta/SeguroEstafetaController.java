@@ -12,7 +12,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.creditienda.dto.estafeta.seguro.EstafetaSeguroResponseDTO;
 import com.creditienda.service.EstafetaSeguroClient;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
+@Tag(name = "Estafeta - Seguro", description = "Consulta de seguro asociado a una guia Estafeta. Requiere JWT.")
 @RestController
 @RequestMapping("/api/estafeta/seguro")
 public class SeguroEstafetaController {
@@ -25,6 +28,7 @@ public class SeguroEstafetaController {
         this.seguroClient = seguroClient;
     }
 
+    @Operation(summary = "Consultar seguro de guia", description = "Retorna informacion del seguro asociado al codigo de guia Estafeta. GET /api/estafeta/seguro/{code}")
     @GetMapping("/{code}")
     public ResponseEntity<?> consultarSeguro(
             @PathVariable String code,

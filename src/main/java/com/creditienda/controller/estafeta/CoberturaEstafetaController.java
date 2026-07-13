@@ -14,7 +14,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.creditienda.dto.CoberturaRequest;
 import com.creditienda.service.EstafetaCoberturaClient;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
+@Tag(name = "Estafeta - Cobertura", description = "Consulta de cobertura de servicio Estafeta por codigo postal. Requiere JWT.")
 @RestController
 @RequestMapping("/api/estafeta/cobertura")
 public class CoberturaEstafetaController {
@@ -50,6 +53,7 @@ public class CoberturaEstafetaController {
     }
 
     // 🔐 Endpoint protegido con JWT
+    @Operation(summary = "Validar cobertura", description = "Consulta si Estafeta tiene cobertura entre dos codigos postales. Body: CoberturaRequest con origen y destino.")
     @PostMapping("/secure")
     public ResponseEntity<String> validarCoberturaProtegida(
             @RequestBody CoberturaRequest request,

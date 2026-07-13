@@ -16,7 +16,10 @@ import com.creditienda.dto.estafeta.guia.WayBillRequestDTO;
 import com.creditienda.dto.skydropx.GuiaUnificadaResponseDTO;
 import com.creditienda.service.skydropx.GuiaUnificadaService;
 import com.creditienda.service.skydropx.GuiaUnificadaService.AllCarriersFailedException;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
+@Tag(name = "Guia Unificada", description = "Generacion de guias con prelacion Estafeta -> SkyDropX")
 @RestController
 @RequestMapping("/api/secure/skydropx")
 public class GuiaUnificadaController {
@@ -29,6 +32,7 @@ public class GuiaUnificadaController {
         this.guiaUnificadaService = guiaUnificadaService;
     }
 
+    @Operation(summary = "Generar guia", description = "Genera guia con prelacion configurada (Estafeta primero, SkyDropX como fallback). Requiere JWT.")
     @PostMapping("/guia")
     public ResponseEntity<?> generarGuia(
             @RequestBody WayBillRequestDTO request,

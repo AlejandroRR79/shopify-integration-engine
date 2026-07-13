@@ -14,8 +14,11 @@ import org.springframework.web.bind.annotation.RestController;
 import com.creditienda.security.JwtUtil;
 import com.creditienda.security.LoginRateLimiter;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 
+@Tag(name = "Autenticacion", description = "Login y generacion de JWT")
 @RestController
 @RequestMapping("/auth")
 public class AuthController {
@@ -32,6 +35,7 @@ public class AuthController {
     @Value("${auth.users.admin.password}")
     private String adminPass;
 
+    @Operation(summary = "Login", description = "Autentica usuario y devuelve JWT Bearer. Body: {username, password}")
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Map<String, String> body,
             HttpServletRequest request) {

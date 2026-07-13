@@ -94,14 +94,14 @@ public class ShopifyMultiStoreBulkService {
                                 new ArrayList<>(fallidosPrecio),
                                 new ArrayList<>(fallidosInventario),
                                 productos.size(),
-                                String.format("✅ %d | ❌ precio: %d | ❌ inventario: %d",
+                                String.format("OK: %d | FALLO precio: %d | FALLO inventario: %d",
                                         exitosos.size(), fallidosPrecio.size(), fallidosInventario.size())));
 
                     } catch (Exception e) {
                         log.error("[MULTI-STORE] error general tienda={}", store.getAlias(), e);
                         conc.put(store.getDomain(), new RespuestaLoteBulkDTO(
                                 List.of(), List.of(), List.of(), productos.size(),
-                                "❌ Error al procesar tienda: " + e.getMessage()));
+                                "ERROR al procesar tienda: " + e.getMessage()));
                     }
                 }, shopifyExecutor))
                 .collect(Collectors.toList());
@@ -110,6 +110,53 @@ public class ShopifyMultiStoreBulkService {
 
         Map<String, RespuestaLoteBulkDTO> resultados = new LinkedHashMap<>();
         stores.forEach(s -> resultados.put(s.getDomain(), conc.get(s.getDomain())));
+        return new RespuestaMultiTiendaDTO(loteId, resultados);
+    }
+
+    public RespuestaMultiTiendaDTO actualizarProductosBulkPorTienda(
+            Map<String, List<ProductoActualizarDTO>> productosPorAlias) {
+
+        String loteId = UUID.randomUUID().toString();
+        List<ShopifyStoreConfig> stores = multiStoreProperties.getStores();
+        Map<String, RespuestaLoteBulkDTO> conc = new ConcurrentHashMap<>();
+        Set<String> aliasesSolicitados = productosPorAlias.keySet().stream()
+                .map(String::toLowerCase)
+                .collect(Collectors.toSet());
+
+        productosPorAlias.forEach((alias, productos) -> resolverTiendaPorAlias(alias)
+                .ifPresentOrElse(
+                        store -> { },
+                        () -> {
+                            int total = productos != null ? productos.size() : 0;
+                            log.warn("[MULTI-STORE] alias no configurado en bulk-update-by-store: {}", alias);
+                            conc.put(alias, new RespuestaLoteBulkDTO(
+                                    List.of(), List.of(), List.of(), total,
+                                    "Error: alias no configurado: " + alias));
+                        }));
+
+        List<CompletableFuture<Void>> futures = stores.stream()
+                .filter(store -> aliasesSolicitados.contains(store.getAlias().toLowerCase()))
+                .map(store -> CompletableFuture.runAsync(() -> {
+                    List<ProductoActualizarDTO> productos = productosPorAlias.entrySet().stream()
+                            .filter(entry -> store.getAlias().equalsIgnoreCase(entry.getKey()))
+                            .map(Map.Entry::getValue)
+                            .findFirst()
+                            .orElse(List.of());
+
+                    conc.put(store.getDomain(), procesarPrecioInventarioPorTienda(store, productos, loteId));
+                }, shopifyExecutor))
+                .collect(Collectors.toList());
+
+        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+
+        Map<String, RespuestaLoteBulkDTO> resultados = new LinkedHashMap<>();
+        stores.stream()
+                .filter(store -> aliasesSolicitados.contains(store.getAlias().toLowerCase()))
+                .forEach(store -> resultados.put(store.getDomain(), conc.get(store.getDomain())));
+        productosPorAlias.keySet().stream()
+                .filter(alias -> resolverTiendaPorAlias(alias).isEmpty())
+                .forEach(alias -> resultados.put(alias, conc.get(alias)));
+
         return new RespuestaMultiTiendaDTO(loteId, resultados);
     }
 
@@ -159,7 +206,7 @@ public class ShopifyMultiStoreBulkService {
                         log.error("[MULTI-STORE] error general precio tienda={}", store.getAlias(), e);
                         conc.put(store.getDomain(), new RespuestaLoteBulkDTO(
                                 List.of(), List.of(), List.of(), productos.size(),
-                                "❌ Error al procesar tienda: " + e.getMessage()));
+                                "ERROR al procesar tienda: " + e.getMessage()));
                     }
                 }, shopifyExecutor))
                 .collect(Collectors.toList());
@@ -210,7 +257,7 @@ public class ShopifyMultiStoreBulkService {
                         log.error("[MULTI-STORE] error general inventario tienda={}", store.getAlias(), e);
                         conc.put(store.getDomain(), new RespuestaLoteBulkDTO(
                                 List.of(), List.of(), List.of(), productos.size(),
-                                "❌ Error al procesar tienda: " + e.getMessage()));
+                                "ERROR al procesar tienda: " + e.getMessage()));
                     }
                 }, shopifyExecutor))
                 .collect(Collectors.toList());
@@ -223,6 +270,63 @@ public class ShopifyMultiStoreBulkService {
     }
 
     // ================= CORE =================
+
+    private RespuestaLoteBulkDTO procesarPrecioInventarioPorTienda(
+            ShopifyStoreConfig store,
+            List<ProductoActualizarDTO> productos,
+            String loteId) {
+
+        int total = productos != null ? productos.size() : 0;
+        log.info("[MULTI-STORE] procesando tienda={} loteId={} productos={}",
+                store.getAlias(), loteId, total);
+
+        try {
+            List<ProductoActualizarDTO> productosProcesar = productos != null ? productos : List.of();
+            String token = tokenResolver.resolverToken(store);
+            String locationId = obtenerLocationId(store, token);
+
+            Set<String> exitosos = new HashSet<>();
+            Set<String> fallidosPrecio = new HashSet<>();
+            Set<String> fallidosInventario = new HashSet<>();
+
+            for (List<ProductoActualizarDTO> chunk : partition(productosProcesar, store.getBulkChunkSize())) {
+                try {
+                    procesarChunk(chunk, store, token, locationId,
+                            exitosos, fallidosPrecio, fallidosInventario);
+                } catch (Exception e) {
+                    List<String> handlesChunk = chunk.stream()
+                            .map(ProductoActualizarDTO::getHandle)
+                            .collect(Collectors.toList());
+                    log.error("[MULTI-STORE] error en chunk tienda={} handles={} causa={}",
+                            store.getAlias(), handlesChunk, e.getMessage(), e);
+                    chunk.forEach(p -> {
+                        fallidosPrecio.add(p.getHandle());
+                        fallidosInventario.add(p.getHandle());
+                    });
+                }
+            }
+
+            return new RespuestaLoteBulkDTO(
+                    new ArrayList<>(exitosos),
+                    new ArrayList<>(fallidosPrecio),
+                    new ArrayList<>(fallidosInventario),
+                    total,
+                    String.format("OK: %d | FALLO precio: %d | FALLO inventario: %d",
+                            exitosos.size(), fallidosPrecio.size(), fallidosInventario.size()));
+
+        } catch (Exception e) {
+            log.error("[MULTI-STORE] error general tienda={}", store.getAlias(), e);
+            return new RespuestaLoteBulkDTO(
+                    List.of(), List.of(), List.of(), total,
+                    "ERROR al procesar tienda: " + e.getMessage());
+        }
+    }
+
+    private java.util.Optional<ShopifyStoreConfig> resolverTiendaPorAlias(String alias) {
+        return multiStoreProperties.getStores().stream()
+                .filter(s -> s.getAlias().equalsIgnoreCase(alias))
+                .findFirst();
+    }
 
     private void procesarChunk(
             List<ProductoActualizarDTO> chunk,

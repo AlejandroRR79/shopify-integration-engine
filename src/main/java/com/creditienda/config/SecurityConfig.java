@@ -27,7 +27,10 @@ public class SecurityConfig {
                                 .authorizeHttpRequests(auth -> auth
                                                 .requestMatchers(
                                                                 "/auth/**",
-                                                                "/api/webhook/**")
+                                                                "/api/webhook/**",
+                                                                "/swagger-ui.html",
+                                                                "/swagger-ui/**",
+                                                                "/v3/api-docs/**")
                                                 .permitAll()
                                                 // =========================================
                                                 // SKYDROPX WEBHOOK

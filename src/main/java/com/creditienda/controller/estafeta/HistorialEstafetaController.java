@@ -11,7 +11,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.creditienda.service.EstafetHistorialClient;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
+@Tag(name = "Estafeta - Historial", description = "Consulta de historial de tracking Estafeta. Requiere JWT.")
 @RestController
 @RequestMapping("/api/estafeta/historial")
 public class HistorialEstafetaController {
@@ -24,6 +27,7 @@ public class HistorialEstafetaController {
         this.estafetHistorialClient = estafetHistorialClient;
     }
 
+    @Operation(summary = "Consultar historial de tracking", description = "Passthrough al API de Estafeta para obtener historial de eventos de una guia. Body: JSON con waybill(s).")
     @PostMapping
     public ResponseEntity<String> consultarHistorial(
             @RequestBody(required = false) String jsonBody,

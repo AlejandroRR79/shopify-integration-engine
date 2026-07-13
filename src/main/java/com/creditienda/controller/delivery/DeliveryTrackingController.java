@@ -11,9 +11,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.creditienda.service.delivery.DeliveryTrackingDAOService;
 import com.creditienda.service.facturacion.DeliveryFacturacionService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
+@Tag(name = "Delivery", description = "Sincronizacion de estatus de entrega y facturacion. Requiere JWT.")
 @RestController
-
 @RequestMapping("/api/secure/delivery")
 public class DeliveryTrackingController {
 
@@ -35,6 +37,7 @@ public class DeliveryTrackingController {
      * → DB).
      * Requiere JWT Bearer token.
      */
+    @Operation(summary = "Sincronizar estatus de entregas", description = "Dispara manualmente la sincronizacion de estatus Estafeta hacia BD.")
     @PostMapping("/sincronizar")
     public ResponseEntity<String> sincronizarEstatusEntregas(Authentication authentication) {
 
@@ -56,6 +59,7 @@ public class DeliveryTrackingController {
      * Requiere JWT Bearer token.
      */
 
+    @Operation(summary = "Ejecutar facturacion de entregas", description = "Dispara manualmente la generacion y timbrado de facturas de entregas completadas.")
     @PostMapping("/facturar")
     public ResponseEntity<String> ejecutarFacturacion(Authentication authentication) {
 

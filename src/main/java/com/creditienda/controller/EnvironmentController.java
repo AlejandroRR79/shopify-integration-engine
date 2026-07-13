@@ -15,7 +15,10 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
+@Tag(name = "Environment", description = "Consulta de variables de configuracion activas. Requiere JWT.")
 @RestController
 @RequestMapping("/api/shopify/secure")
 public class EnvironmentController {
@@ -27,6 +30,7 @@ public class EnvironmentController {
         this.environment = environment;
     }
 
+    @Operation(summary = "Ver variables de configuracion", description = "Lista las properties activas. Usar ?reveal=true para ver valores reales (solo en ambientes seguros).")
     @GetMapping("/env")
     public ResponseEntity<Map<String, String>> getProperties(
             @RequestParam(required = false, defaultValue = "false") boolean reveal) {

@@ -95,6 +95,105 @@ public class ShopifyMultiStoreUpsertService {
         return resultados;
     }
 
+    public Map<String, Map<String, Object>> upsertPorTienda(
+            Map<String, ShopifyProductUpsertDTO> productoPorAlias) {
+
+        List<ShopifyStoreConfig> stores = multiStoreProperties.getStores();
+        Map<String, Map<String, Object>> conc = new ConcurrentHashMap<>();
+        List<String> aliasesSolicitados = new ArrayList<>(productoPorAlias.keySet());
+
+        productoPorAlias.forEach((alias, dto) -> resolverTiendaPorAlias(alias)
+                .ifPresentOrElse(
+                        store -> { },
+                        () -> {
+                            log.warn("[MULTI-UPSERT] alias no configurado en upsert-by-store: {}", alias);
+                            Map<String, Object> resultado = new LinkedHashMap<>();
+                            resultado.put("accion", "ERROR");
+                            resultado.put("handle", dto != null ? dto.getHandle() : null);
+                            resultado.put("exito", false);
+                            resultado.put("error", "Error: alias no configurado: " + alias);
+                            conc.put(alias, resultado);
+                        }));
+
+        List<CompletableFuture<Void>> futures = stores.stream()
+                .filter(store -> aliasesSolicitados.stream()
+                        .anyMatch(alias -> store.getAlias().equalsIgnoreCase(alias)))
+                .map(store -> CompletableFuture.runAsync(() -> {
+                    ShopifyProductUpsertDTO dto = productoPorAlias.entrySet().stream()
+                            .filter(entry -> store.getAlias().equalsIgnoreCase(entry.getKey()))
+                            .map(Map.Entry::getValue)
+                            .findFirst()
+                            .orElse(null);
+
+                    conc.put(store.getDomain(), procesarUpsertPorTienda(store, dto));
+                }, shopifyExecutor))
+                .collect(Collectors.toList());
+
+        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+
+        Map<String, Map<String, Object>> resultados = new LinkedHashMap<>();
+        stores.stream()
+                .filter(store -> aliasesSolicitados.stream()
+                        .anyMatch(alias -> store.getAlias().equalsIgnoreCase(alias)))
+                .forEach(store -> resultados.put(store.getDomain(), conc.get(store.getDomain())));
+        productoPorAlias.keySet().stream()
+                .filter(alias -> resolverTiendaPorAlias(alias).isEmpty())
+                .forEach(alias -> resultados.put(alias, conc.get(alias)));
+
+        return resultados;
+    }
+
+    private Map<String, Object> procesarUpsertPorTienda(
+            ShopifyStoreConfig store,
+            ShopifyProductUpsertDTO dto) {
+
+        String handle = dto != null ? dto.getHandle() : null;
+        log.info("[MULTI-UPSERT] tienda={} handle={}", store.getAlias(), handle);
+        Map<String, Object> resultado = new LinkedHashMap<>();
+
+        try {
+            if (dto == null) {
+                throw new IllegalArgumentException("Producto requerido para tienda=" + store.getAlias());
+            }
+            if (dto.getHandle() == null || dto.getHandle().isBlank()) {
+                throw new IllegalArgumentException("handle requerido para tienda=" + store.getAlias());
+            }
+
+            String token = tokenResolver.resolverToken(store);
+            Map<String, Object> producto = buscarPorHandle(dto.getHandle(), store, token);
+
+            if (producto == null) {
+                crearProducto(dto, store, token);
+                resultado.put("accion", "CREADO");
+                log.info("[MULTI-UPSERT] CREADO tienda={} handle={}", store.getAlias(), dto.getHandle());
+            } else {
+                actualizarProductoYVariante(producto, dto, store, token);
+                resultado.put("accion", "ACTUALIZADO");
+                log.info("[MULTI-UPSERT] ACTUALIZADO tienda={} handle={}", store.getAlias(), dto.getHandle());
+            }
+
+            resultado.put("handle", dto.getHandle());
+            resultado.put("exito", true);
+            resultado.put("error", null);
+
+        } catch (Exception e) {
+            log.error("[MULTI-UPSERT] ERROR tienda={} handle={} msg={}",
+                    store.getAlias(), handle, e.getMessage(), e);
+            resultado.put("accion", "ERROR");
+            resultado.put("handle", handle);
+            resultado.put("exito", false);
+            resultado.put("error", e.getMessage());
+        }
+
+        return resultado;
+    }
+
+    private java.util.Optional<ShopifyStoreConfig> resolverTiendaPorAlias(String alias) {
+        return multiStoreProperties.getStores().stream()
+                .filter(s -> s.getAlias().equalsIgnoreCase(alias))
+                .findFirst();
+    }
+
     // ================= BUSCAR =================
 
     @SuppressWarnings("unchecked")

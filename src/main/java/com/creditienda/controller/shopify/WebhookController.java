@@ -14,7 +14,10 @@ import org.springframework.web.bind.annotation.RestController;
 import com.creditienda.service.b2b.B2BService;
 import com.creditienda.service.b2b.B2BTokenService;
 import com.creditienda.service.shopify.HmacValidator;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
+@Tag(name = "Webhook Shopify", description = "Receptor de ordenes de compra desde Shopify hacia B2B. Endpoint publico con validacion HMAC.")
 @RestController
 @RequestMapping("/api/webhook")
 public class WebhookController {
@@ -34,10 +37,7 @@ public class WebhookController {
         this.b2bService = b2bService;
     }
 
-    /**
-     * Endpoint público para registrar orden de compra (OC) desde Shopify hacia el
-     * servicio B2B.
-     */
+    @Operation(summary = "Registrar orden de compra", description = "Recibe webhook de Shopify con OC y la reenvía al sistema B2B. Valida firma HMAC en header X-Shopify-Hmac-Sha256.")
     @PostMapping("/registrarOC")
     public ResponseEntity<String> registrarOC(
             @RequestHeader(value = "X-Shopify-Hmac-Sha256", required = false) String hmac,

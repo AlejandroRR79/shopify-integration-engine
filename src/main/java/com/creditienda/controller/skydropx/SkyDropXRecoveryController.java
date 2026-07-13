@@ -8,7 +8,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.creditienda.service.skydropx.SkyDropXRecoveryService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
+@Tag(name = "SkyDropX Recovery", description = "Ejecucion manual del proceso de recovery de guias SkyDropX atascadas. Requiere JWT.")
 @RestController
 @RequestMapping("/api/secure/skydropx")
 public class SkyDropXRecoveryController {
@@ -21,6 +24,7 @@ public class SkyDropXRecoveryController {
         this.recoveryService = recoveryService;
     }
 
+    @Operation(summary = "Ejecutar recovery manual", description = "Reintenta guias SkyDropX en estado atascado (stuck processes)")
     @PostMapping("/recovery/run")
     public ResponseEntity<String> ejecutarRecovery() {
         try {

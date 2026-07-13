@@ -28,9 +28,12 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import jakarta.servlet.http.HttpServletResponse;
 
+@Tag(name = "Logs", description = "Acceso a los archivos de log del servidor. Requiere JWT.")
 @RestController
 @RequestMapping("/api/logs")
 public class LogController {
@@ -38,6 +41,7 @@ public class LogController {
     private static final Logger log = LogManager.getLogger(LogController.class);
     private static final int MAX_LINES = 200; // últimas N líneas
 
+    @Operation(summary = "Tail del log activo", description = "Devuelve las ultimas 200 lineas del log activo creditienda.log")
     @GetMapping("/tail")
     public ResponseEntity<List<String>> tailLog() {
         log.info("➡️ Entrando a /api/logs/tail");
@@ -99,6 +103,7 @@ public class LogController {
         return result;
     }
 
+    @Operation(summary = "Descargar log activo", description = "Descarga el archivo creditienda.log completo (log del dia actual)")
     @GetMapping("/download")
     public void downloadLog(HttpServletResponse response) throws IOException {
 
@@ -133,6 +138,7 @@ public class LogController {
         log.info("✅ Log descargado correctamente");
     }
 
+    @Operation(summary = "Listar archivos de log", description = "Lista todos los archivos de log disponibles (activo + comprimidos .gz) con nombre, tamano y fecha. Ordenados por fecha descendente.")
     @GetMapping("/list")
     public ResponseEntity<List<Map<String, Object>>> listLogs() throws IOException {
         log.info("Entrando a /api/logs/list");
@@ -169,6 +175,7 @@ public class LogController {
         }
     }
 
+    @Operation(summary = "Descargar log por nombre", description = "Descarga un archivo de log especifico. Los .gz se descomprimen automaticamente al vuelo. Nombre debe empezar con 'creditienda'.")
     @GetMapping("/download/{filename}")
     public void downloadLogFile(
             @PathVariable String filename,

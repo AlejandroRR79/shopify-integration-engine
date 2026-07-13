@@ -17,7 +17,10 @@ import org.springframework.web.bind.annotation.RestController;
 import com.creditienda.dto.estafeta.guia.WayBillRequestDTO;
 import com.creditienda.service.EstafetaGuiaClient;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
+@Tag(name = "Estafeta - Guia", description = "Generacion de guias de envio Estafeta. Requiere JWT.")
 @RestController
 @RequestMapping("/api/estafeta/guia")
 public class GuiaEstafetaController {
@@ -34,6 +37,7 @@ public class GuiaEstafetaController {
         this.estafetaGuiaClient = estafetaGuiaClient;
     }
 
+    @Operation(summary = "Generar guia Estafeta", description = "Genera guia de envio Estafeta. Aplica fecha efectiva automaticamente segun offset configurado.")
     @PostMapping("/secure")
     public ResponseEntity<String> generarGuiaProtegida(
             @RequestBody WayBillRequestDTO request,
