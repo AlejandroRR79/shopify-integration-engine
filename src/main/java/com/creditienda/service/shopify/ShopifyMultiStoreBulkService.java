@@ -74,34 +74,45 @@ public class ShopifyMultiStoreBulkService {
                         Set<String> exitosos = new HashSet<>();
                         Set<String> fallidosPrecio = new HashSet<>();
                         Set<String> fallidosInventario = new HashSet<>();
+                        Map<String, String> erroresPrecio = new HashMap<>();
+                        Map<String, String> erroresInventario = new HashMap<>();
 
                         for (List<ProductoActualizarDTO> chunk : partition(productos, store.getBulkChunkSize())) {
                             try {
                                 procesarChunk(chunk, store, token, locationId,
-                                        exitosos, fallidosPrecio, fallidosInventario);
+                                        exitosos, fallidosPrecio, fallidosInventario,
+                                        erroresPrecio, erroresInventario);
                             } catch (Exception e) {
                                 List<String> handlesChunk = chunk.stream().map(ProductoActualizarDTO::getHandle).collect(Collectors.toList());
                                 log.error("[MULTI-STORE] error en chunk tienda={} handles={} causa={}", store.getAlias(), handlesChunk, e.getMessage(), e);
                                 chunk.forEach(p -> {
                                     fallidosPrecio.add(p.getHandle());
                                     fallidosInventario.add(p.getHandle());
+                                    erroresPrecio.put(p.getHandle(), e.getMessage());
+                                    erroresInventario.put(p.getHandle(), e.getMessage());
                                 });
                             }
                         }
 
-                        conc.put(store.getDomain(), new RespuestaLoteBulkDTO(
+                        RespuestaLoteBulkDTO resp = new RespuestaLoteBulkDTO(
                                 new ArrayList<>(exitosos),
                                 new ArrayList<>(fallidosPrecio),
                                 new ArrayList<>(fallidosInventario),
                                 productos.size(),
                                 String.format("OK: %d | FALLO precio: %d | FALLO inventario: %d",
-                                        exitosos.size(), fallidosPrecio.size(), fallidosInventario.size())));
+                                        exitosos.size(), fallidosPrecio.size(), fallidosInventario.size()),
+                                new HashMap<>(erroresPrecio),
+                                new HashMap<>(erroresInventario));
+                        resp.setNombreTienda(store.getDomain());
+                        conc.put(store.getAlias(), resp);
 
                     } catch (Exception e) {
                         log.error("[MULTI-STORE] error general tienda={}", store.getAlias(), e);
-                        conc.put(store.getDomain(), new RespuestaLoteBulkDTO(
+                        RespuestaLoteBulkDTO resp = new RespuestaLoteBulkDTO(
                                 List.of(), List.of(), List.of(), productos.size(),
-                                "ERROR al procesar tienda: " + e.getMessage()));
+                                "ERROR al procesar tienda: " + e.getMessage());
+                        resp.setNombreTienda(store.getDomain());
+                        conc.put(store.getAlias(), resp);
                     }
                 }, shopifyExecutor))
                 .collect(Collectors.toList());
@@ -109,7 +120,7 @@ public class ShopifyMultiStoreBulkService {
         CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
 
         Map<String, RespuestaLoteBulkDTO> resultados = new LinkedHashMap<>();
-        stores.forEach(s -> resultados.put(s.getDomain(), conc.get(s.getDomain())));
+        stores.forEach(s -> resultados.put(s.getAlias(), conc.get(s.getAlias())));
         return new RespuestaMultiTiendaDTO(loteId, resultados);
     }
 
@@ -143,7 +154,9 @@ public class ShopifyMultiStoreBulkService {
                             .findFirst()
                             .orElse(List.of());
 
-                    conc.put(store.getDomain(), procesarPrecioInventarioPorTienda(store, productos, loteId));
+                    RespuestaLoteBulkDTO resp = procesarPrecioInventarioPorTienda(store, productos, loteId);
+                    resp.setNombreTienda(store.getDomain());
+                    conc.put(store.getAlias(), resp);
                 }, shopifyExecutor))
                 .collect(Collectors.toList());
 
@@ -152,7 +165,7 @@ public class ShopifyMultiStoreBulkService {
         Map<String, RespuestaLoteBulkDTO> resultados = new LinkedHashMap<>();
         stores.stream()
                 .filter(store -> aliasesSolicitados.contains(store.getAlias().toLowerCase()))
-                .forEach(store -> resultados.put(store.getDomain(), conc.get(store.getDomain())));
+                .forEach(store -> resultados.put(store.getAlias(), conc.get(store.getAlias())));
         productosPorAlias.keySet().stream()
                 .filter(alias -> resolverTiendaPorAlias(alias).isEmpty())
                 .forEach(alias -> resultados.put(alias, conc.get(alias)));
@@ -172,9 +185,11 @@ public class ShopifyMultiStoreBulkService {
                     try {
                         if (!store.isUpdatePrice()) {
                             log.info("[MULTI-STORE] PRECIO omitido por configuracion tienda={}", store.getAlias());
-                            conc.put(store.getDomain(), new RespuestaLoteBulkDTO(
+                            RespuestaLoteBulkDTO skip = new RespuestaLoteBulkDTO(
                                     List.of(), List.of(), List.of(), productos.size(),
-                                    "⏭ Actualización de precio no aplica para esta tienda"));
+                                    "Actualización de precio no aplica para esta tienda");
+                            skip.setNombreTienda(store.getDomain());
+                            conc.put(store.getAlias(), skip);
                             return;
                         }
 
@@ -182,6 +197,7 @@ public class ShopifyMultiStoreBulkService {
 
                         Set<String> exitosos = new HashSet<>();
                         Set<String> fallidosPrecio = new HashSet<>();
+                        Map<String, String> erroresPrecio = new HashMap<>();
 
                         for (List<ProductoActualizarDTO> chunk : partition(productos, store.getBulkChunkSize())) {
                             try {
@@ -189,24 +205,31 @@ public class ShopifyMultiStoreBulkService {
                                 ResultadoOperacion precio = actualizarPrecios(chunk, ids, store, token);
                                 exitosos.addAll(precio.exitosos);
                                 fallidosPrecio.addAll(precio.fallidos);
+                                erroresPrecio.putAll(precio.errores);
                             } catch (Exception e) {
                                 log.error("[MULTI-STORE] error chunk precio tienda={}", store.getAlias(), e);
-                                chunk.forEach(p -> fallidosPrecio.add(p.getHandle()));
+                                chunk.forEach(p -> { fallidosPrecio.add(p.getHandle()); erroresPrecio.put(p.getHandle(), e.getMessage()); });
                             }
                         }
 
-                        conc.put(store.getDomain(), new RespuestaLoteBulkDTO(
+                        RespuestaLoteBulkDTO resp = new RespuestaLoteBulkDTO(
                                 new ArrayList<>(exitosos),
                                 new ArrayList<>(fallidosPrecio),
                                 List.of(),
                                 productos.size(),
-                                String.format("✅ %d | ❌ precio: %d", exitosos.size(), fallidosPrecio.size())));
+                                String.format("OK: %d | FALLO precio: %d", exitosos.size(), fallidosPrecio.size()),
+                                new HashMap<>(erroresPrecio),
+                                Map.of());
+                        resp.setNombreTienda(store.getDomain());
+                        conc.put(store.getAlias(), resp);
 
                     } catch (Exception e) {
                         log.error("[MULTI-STORE] error general precio tienda={}", store.getAlias(), e);
-                        conc.put(store.getDomain(), new RespuestaLoteBulkDTO(
+                        RespuestaLoteBulkDTO resp = new RespuestaLoteBulkDTO(
                                 List.of(), List.of(), List.of(), productos.size(),
-                                "ERROR al procesar tienda: " + e.getMessage()));
+                                "ERROR al procesar tienda: " + e.getMessage());
+                        resp.setNombreTienda(store.getDomain());
+                        conc.put(store.getAlias(), resp);
                     }
                 }, shopifyExecutor))
                 .collect(Collectors.toList());
@@ -214,7 +237,7 @@ public class ShopifyMultiStoreBulkService {
         CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
 
         Map<String, RespuestaLoteBulkDTO> resultados = new LinkedHashMap<>();
-        stores.forEach(s -> resultados.put(s.getDomain(), conc.get(s.getDomain())));
+        stores.forEach(s -> resultados.put(s.getAlias(), conc.get(s.getAlias())));
         return new RespuestaMultiTiendaDTO(loteId, resultados);
     }
 
@@ -233,6 +256,7 @@ public class ShopifyMultiStoreBulkService {
 
                         Set<String> exitosos = new HashSet<>();
                         Set<String> fallidosInventario = new HashSet<>();
+                        Map<String, String> erroresInventario = new HashMap<>();
 
                         for (List<ProductoActualizarDTO> chunk : partition(productos, store.getBulkChunkSize())) {
                             try {
@@ -240,24 +264,31 @@ public class ShopifyMultiStoreBulkService {
                                 ResultadoOperacion inventario = actualizarInventario(chunk, ids, locationId, store, token);
                                 exitosos.addAll(inventario.exitosos);
                                 fallidosInventario.addAll(inventario.fallidos);
+                                erroresInventario.putAll(inventario.errores);
                             } catch (Exception e) {
                                 log.error("[MULTI-STORE] error chunk inventario tienda={}", store.getAlias(), e);
-                                chunk.forEach(p -> fallidosInventario.add(p.getHandle()));
+                                chunk.forEach(p -> { fallidosInventario.add(p.getHandle()); erroresInventario.put(p.getHandle(), e.getMessage()); });
                             }
                         }
 
-                        conc.put(store.getDomain(), new RespuestaLoteBulkDTO(
+                        RespuestaLoteBulkDTO resp = new RespuestaLoteBulkDTO(
                                 new ArrayList<>(exitosos),
                                 List.of(),
                                 new ArrayList<>(fallidosInventario),
                                 productos.size(),
-                                String.format("✅ %d | ❌ inventario: %d", exitosos.size(), fallidosInventario.size())));
+                                String.format("OK: %d | FALLO inventario: %d", exitosos.size(), fallidosInventario.size()),
+                                Map.of(),
+                                new HashMap<>(erroresInventario));
+                        resp.setNombreTienda(store.getDomain());
+                        conc.put(store.getAlias(), resp);
 
                     } catch (Exception e) {
                         log.error("[MULTI-STORE] error general inventario tienda={}", store.getAlias(), e);
-                        conc.put(store.getDomain(), new RespuestaLoteBulkDTO(
+                        RespuestaLoteBulkDTO resp = new RespuestaLoteBulkDTO(
                                 List.of(), List.of(), List.of(), productos.size(),
-                                "ERROR al procesar tienda: " + e.getMessage()));
+                                "ERROR al procesar tienda: " + e.getMessage());
+                        resp.setNombreTienda(store.getDomain());
+                        conc.put(store.getAlias(), resp);
                     }
                 }, shopifyExecutor))
                 .collect(Collectors.toList());
@@ -265,7 +296,7 @@ public class ShopifyMultiStoreBulkService {
         CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
 
         Map<String, RespuestaLoteBulkDTO> resultados = new LinkedHashMap<>();
-        stores.forEach(s -> resultados.put(s.getDomain(), conc.get(s.getDomain())));
+        stores.forEach(s -> resultados.put(s.getAlias(), conc.get(s.getAlias())));
         return new RespuestaMultiTiendaDTO(loteId, resultados);
     }
 
@@ -288,11 +319,14 @@ public class ShopifyMultiStoreBulkService {
             Set<String> exitosos = new HashSet<>();
             Set<String> fallidosPrecio = new HashSet<>();
             Set<String> fallidosInventario = new HashSet<>();
+            Map<String, String> erroresPrecio = new HashMap<>();
+            Map<String, String> erroresInventario = new HashMap<>();
 
             for (List<ProductoActualizarDTO> chunk : partition(productosProcesar, store.getBulkChunkSize())) {
                 try {
                     procesarChunk(chunk, store, token, locationId,
-                            exitosos, fallidosPrecio, fallidosInventario);
+                            exitosos, fallidosPrecio, fallidosInventario,
+                            erroresPrecio, erroresInventario);
                 } catch (Exception e) {
                     List<String> handlesChunk = chunk.stream()
                             .map(ProductoActualizarDTO::getHandle)
@@ -302,6 +336,8 @@ public class ShopifyMultiStoreBulkService {
                     chunk.forEach(p -> {
                         fallidosPrecio.add(p.getHandle());
                         fallidosInventario.add(p.getHandle());
+                        erroresPrecio.put(p.getHandle(), e.getMessage());
+                        erroresInventario.put(p.getHandle(), e.getMessage());
                     });
                 }
             }
@@ -312,7 +348,9 @@ public class ShopifyMultiStoreBulkService {
                     new ArrayList<>(fallidosInventario),
                     total,
                     String.format("OK: %d | FALLO precio: %d | FALLO inventario: %d",
-                            exitosos.size(), fallidosPrecio.size(), fallidosInventario.size()));
+                            exitosos.size(), fallidosPrecio.size(), fallidosInventario.size()),
+                    new HashMap<>(erroresPrecio),
+                    new HashMap<>(erroresInventario));
 
         } catch (Exception e) {
             log.error("[MULTI-STORE] error general tienda={}", store.getAlias(), e);
@@ -335,7 +373,9 @@ public class ShopifyMultiStoreBulkService {
             String locationId,
             Set<String> exitosos,
             Set<String> fallidosPrecio,
-            Set<String> fallidosInventario) {
+            Set<String> fallidosInventario,
+            Map<String, String> erroresPrecio,
+            Map<String, String> erroresInventario) {
 
         Map<String, ShopifyIds> ids = obtenerIdsPorHandle(chunk, store, token);
         ResultadoOperacion precio = store.isUpdatePrice()
@@ -343,9 +383,11 @@ public class ShopifyMultiStoreBulkService {
                 : new ResultadoOperacion(chunk.stream().map(ProductoActualizarDTO::getHandle).collect(Collectors.toSet()), new HashSet<>());
         ResultadoOperacion inventario = actualizarInventario(chunk, ids, locationId, store, token);
 
+        erroresPrecio.putAll(precio.errores);
+        erroresInventario.putAll(inventario.errores);
+
         for (ProductoActualizarDTO dto : chunk) {
             String h = dto.getHandle();
-
             if (precio.exitosos.contains(h) && inventario.exitosos.contains(h)
                     && !precio.fallidos.contains(h) && !inventario.fallidos.contains(h)) {
                 exitosos.add(h);
@@ -488,12 +530,14 @@ public class ShopifyMultiStoreBulkService {
         Set<String> exitosos = new HashSet<>();
         Set<String> fallidos = new HashSet<>();
 
+        Map<String, String> errores = new HashMap<>();
         int i = 1;
         for (ProductoActualizarDTO dto : chunk) {
             ShopifyIds s = ids.get(dto.getHandle().toLowerCase());
             if (s == null) {
                 log.warn("[MULTI-STORE] PRECIO handle no encontrado en tienda={} handle={}", store.getAlias(), dto.getHandle());
                 fallidos.add(dto.getHandle());
+                errores.put(dto.getHandle(), "Producto no encontrado en Shopify");
                 continue;
             }
 
@@ -524,31 +568,37 @@ public class ShopifyMultiStoreBulkService {
         Map<String, Object> response = ejecutarGraphQL(Map.of("query", mutation.toString()), store, token);
 
         if (response.containsKey("errors")) {
-            log.error("[MULTI-STORE] PRICE ERRORS tienda={} handles={} causa={}", store.getAlias(), aliasToHandle.values(), response.get("errors"));
-            aliasToHandle.values().forEach(fallidos::add);
-            return new ResultadoOperacion(exitosos, fallidos);
+            String msg = response.get("errors").toString();
+            log.error("[MULTI-STORE] PRICE ERRORS tienda={} handles={} causa={}", store.getAlias(), aliasToHandle.values(), msg);
+            aliasToHandle.values().forEach(h -> { fallidos.add(h); errores.put(h, msg); });
+            return new ResultadoOperacion(exitosos, fallidos, errores);
         }
 
         Map<String, Object> data = (Map<String, Object>) response.get("data");
         if (data == null) {
+            String msg = "Respuesta nula de Shopify GraphQL";
             log.error("[MULTI-STORE] PRECIO data null en respuesta tienda={} handles={}", store.getAlias(), aliasToHandle.values());
-            aliasToHandle.values().forEach(fallidos::add);
-            return new ResultadoOperacion(exitosos, fallidos);
+            aliasToHandle.values().forEach(h -> { fallidos.add(h); errores.put(h, msg); });
+            return new ResultadoOperacion(exitosos, fallidos, errores);
         }
 
         data.forEach((alias, value) -> {
             Map<String, Object> r = (Map<String, Object>) value;
-            List<Map<String, Object>> errors = (List<Map<String, Object>>) r.get("userErrors");
+            List<Map<String, Object>> userErrors = (List<Map<String, Object>>) r.get("userErrors");
             String handle = aliasToHandle.get(alias);
-            if (errors != null && !errors.isEmpty()) {
-                log.error("[MULTI-STORE] PRICE ERROR tienda={} handle={} errors={}", store.getAlias(), handle, errors);
+            if (userErrors != null && !userErrors.isEmpty()) {
+                String msg = userErrors.stream()
+                        .map(e -> String.valueOf(e.get("message")))
+                        .collect(java.util.stream.Collectors.joining("; "));
+                log.error("[MULTI-STORE] PRICE ERROR tienda={} handle={} errors={}", store.getAlias(), handle, userErrors);
                 fallidos.add(handle);
+                errores.put(handle, msg);
             } else {
                 exitosos.add(handle);
             }
         });
 
-        return new ResultadoOperacion(exitosos, fallidos);
+        return new ResultadoOperacion(exitosos, fallidos, errores);
     }
 
     // ================= GRAPHQL 3: INVENTARIO =================
@@ -615,10 +665,12 @@ public class ShopifyMultiStoreBulkService {
         Map<String, Object> response = ejecutarGraphQL(body, store, token);
 
         if (response.containsKey("errors")) {
+            String msg = response.get("errors").toString();
             List<String> handlesChunk = chunk.stream().map(ProductoActualizarDTO::getHandle).collect(Collectors.toList());
-            log.error("[MULTI-STORE] INVENTORY ERRORS tienda={} handles={} causa={}", store.getAlias(), handlesChunk, response.get("errors"));
-            chunk.forEach(p -> fallidos.add(p.getHandle()));
-            return new ResultadoOperacion(exitosos, fallidos);
+            log.error("[MULTI-STORE] INVENTORY ERRORS tienda={} handles={} causa={}", store.getAlias(), handlesChunk, msg);
+            Map<String, String> errores = new HashMap<>();
+            chunk.forEach(p -> { fallidos.add(p.getHandle()); errores.put(p.getHandle(), msg); });
+            return new ResultadoOperacion(exitosos, fallidos, errores);
         }
 
         Map<String, Object> data = (Map<String, Object>) response.get("data");
@@ -627,7 +679,7 @@ public class ShopifyMultiStoreBulkService {
 
         if (userErrors != null && !userErrors.isEmpty()) {
 
-            Map<String, String> handleErrorMap = new java.util.LinkedHashMap<>();
+            Map<String, String> errores = new java.util.LinkedHashMap<>();
             for (Map<String, Object> error : userErrors) {
                 List<String> field = (List<String>) error.get("field");
                 String mensaje = String.valueOf(error.get("message"));
@@ -635,21 +687,23 @@ public class ShopifyMultiStoreBulkService {
                     try {
                         int index = Integer.parseInt(field.get(2));
                         String handleFallido = chunk.get(index).getHandle();
-                        handleErrorMap.put(handleFallido, mensaje);
+                        errores.put(handleFallido, mensaje);
                         fallidos.add(handleFallido);
                     } catch (Exception ex) {
                         log.warn("[MULTI-STORE] no se pudo mapear error inventario por índice, marcando chunk completo", ex);
-                        chunk.forEach(p -> { handleErrorMap.put(p.getHandle(), mensaje); fallidos.add(p.getHandle()); });
+                        chunk.forEach(p -> { errores.put(p.getHandle(), mensaje); fallidos.add(p.getHandle()); });
                     }
                 } else {
-                    chunk.forEach(p -> { handleErrorMap.put(p.getHandle(), mensaje); fallidos.add(p.getHandle()); });
+                    chunk.forEach(p -> { errores.put(p.getHandle(), mensaje); fallidos.add(p.getHandle()); });
                 }
             }
-            log.error("[MULTI-STORE] INVENTARIO fallidos tienda={} handles+errores={}", store.getAlias(), handleErrorMap);
+            log.error("[MULTI-STORE] INVENTARIO fallidos tienda={} handles+errores={}", store.getAlias(), errores);
 
             chunk.forEach(p -> {
                 if (!fallidos.contains(p.getHandle())) exitosos.add(p.getHandle());
             });
+
+            return new ResultadoOperacion(exitosos, fallidos, errores);
 
         } else {
             chunk.forEach(p -> exitosos.add(p.getHandle()));
@@ -726,10 +780,18 @@ public class ShopifyMultiStoreBulkService {
     static class ResultadoOperacion {
         Set<String> exitosos;
         Set<String> fallidos;
+        Map<String, String> errores;
 
         ResultadoOperacion(Set<String> exitosos, Set<String> fallidos) {
             this.exitosos = exitosos;
             this.fallidos = fallidos;
+            this.errores = new HashMap<>();
+        }
+
+        ResultadoOperacion(Set<String> exitosos, Set<String> fallidos, Map<String, String> errores) {
+            this.exitosos = exitosos;
+            this.fallidos = fallidos;
+            this.errores = errores;
         }
     }
 }

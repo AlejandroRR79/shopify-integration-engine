@@ -125,7 +125,7 @@ public class ShopifyMultiStoreUpsertService {
                             .findFirst()
                             .orElse(null);
 
-                    conc.put(store.getDomain(), procesarUpsertPorTienda(store, dto));
+                    conc.put(store.getAlias(), procesarUpsertPorTienda(store, dto));
                 }, shopifyExecutor))
                 .collect(Collectors.toList());
 
@@ -135,7 +135,7 @@ public class ShopifyMultiStoreUpsertService {
         stores.stream()
                 .filter(store -> aliasesSolicitados.stream()
                         .anyMatch(alias -> store.getAlias().equalsIgnoreCase(alias)))
-                .forEach(store -> resultados.put(store.getDomain(), conc.get(store.getDomain())));
+                .forEach(store -> resultados.put(store.getAlias(), conc.get(store.getAlias())));
         productoPorAlias.keySet().stream()
                 .filter(alias -> resolverTiendaPorAlias(alias).isEmpty())
                 .forEach(alias -> resultados.put(alias, conc.get(alias)));
@@ -173,6 +173,7 @@ public class ShopifyMultiStoreUpsertService {
             }
 
             resultado.put("handle", dto.getHandle());
+            resultado.put("nombreTienda", store.getDomain());
             resultado.put("exito", true);
             resultado.put("error", null);
 
@@ -181,6 +182,7 @@ public class ShopifyMultiStoreUpsertService {
                     store.getAlias(), handle, e.getMessage(), e);
             resultado.put("accion", "ERROR");
             resultado.put("handle", handle);
+            resultado.put("nombreTienda", store.getDomain());
             resultado.put("exito", false);
             resultado.put("error", e.getMessage());
         }
